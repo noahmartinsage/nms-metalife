@@ -1,0 +1,12 @@
+node_modules
+dist
+dist-ssr
+.DS_Store
+*.local
+.vite
+npm-debug.log*
+.env
+.env.*
+!.env.example
+.workbuddy-ai
+.ssr-tmp

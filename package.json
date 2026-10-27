@@ -1,0 +1,36 @@
+{
+  "name": "nms-metalife",
+  "private": true,
+  "version": "13.0.0",
+  "type": "module",
+  "description": "NMS MetaLife — AI 驱动的去中心化金融与生活生态系统（V13.0 复现版）",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview --port 4173",
+    "check:routes": "vite build --ssr scripts/ssr-check.jsx --outDir .ssr-tmp --logLevel warn && node .ssr-tmp/ssr-check.js"
+  },
+  "dependencies": {
+    "canvas-confetti": "^1.9.4",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "date-fns": "^3.6.0",
+    "framer-motion": "^11.16.4",
+    "lucide-react": "^0.475.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-markdown": "^10.1.0",
+    "react-router-dom": "^6.26.2",
+    "recharts": "^2.15.4",
+    "remark-gfm": "^4.0.1",
+    "sonner": "^2.0.1",
+    "tailwind-merge": "^2.5.5"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.4",
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.17",
+    "vite": "^5.4.11"
+  }
+}

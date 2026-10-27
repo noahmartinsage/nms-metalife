@@ -1,0 +1,63 @@
+{
+  "name": "DataAsset",
+  "type": "object",
+  "properties": {
+    "user_email": {
+      "type": "string"
+    },
+    "asset_type": {
+      "type": "string",
+      "enum": [
+        "consumption",
+        "health",
+        "social",
+        "location",
+        "behavior"
+      ]
+    },
+    "asset_name": {
+      "type": "string"
+    },
+    "data_hash": {
+      "type": "string"
+    },
+    "nft_token_id": {
+      "type": "string"
+    },
+    "estimated_value": {
+      "type": "number"
+    },
+    "is_listed": {
+      "type": "boolean",
+      "default": false
+    },
+    "list_price": {
+      "type": "number"
+    },
+    "trade_count": {
+      "type": "number",
+      "default": 0
+    },
+    "total_earnings": {
+      "type": "number",
+      "default": 0
+    },
+    "data_size": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "confirmed",
+        "trading"
+      ],
+      "default": "pending"
+    }
+  },
+  "required": [
+    "user_email",
+    "asset_type",
+    "asset_name"
+  ]
+}

@@ -1,0 +1,133 @@
+{
+  "name": "MerchantStore",
+  "type": "object",
+  "properties": {
+    "store_name": {
+      "type": "string"
+    },
+    "owner_email": {
+      "type": "string"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "餐饮",
+        "零售",
+        "服务",
+        "娱乐",
+        "教育",
+        "医疗",
+        "其他"
+      ]
+    },
+    "tip_ratio": {
+      "type": "number",
+      "default": 10
+    },
+    "tip_wallet_balance": {
+      "type": "number",
+      "default": 0
+    },
+    "dividend_pool": {
+      "type": "number",
+      "default": 0
+    },
+    "lucky_packet_pool": {
+      "type": "number",
+      "default": 0
+    },
+    "physical_nft_pool": {
+      "type": "number",
+      "default": 0
+    },
+    "store_nft_pool": {
+      "type": "number",
+      "default": 0
+    },
+    "physical_nft_reserved": {
+      "type": "number",
+      "default": 0
+    },
+    "store_nft_reserved": {
+      "type": "number",
+      "default": 0
+    },
+    "address": {
+      "type": "string"
+    },
+    "latitude": {
+      "type": "number"
+    },
+    "longitude": {
+      "type": "number"
+    },
+    "phone": {
+      "type": "string"
+    },
+    "logo_url": {
+      "type": "string"
+    },
+    "is_verified": {
+      "type": "boolean",
+      "default": false
+    },
+    "business_license": {
+      "type": "string"
+    },
+    "operating_permit": {
+      "type": "string"
+    },
+    "qr_code": {
+      "type": "string"
+    },
+    "total_transactions": {
+      "type": "number",
+      "default": 0
+    },
+    "total_sales": {
+      "type": "number",
+      "default": 0
+    },
+    "total_tips_given": {
+      "type": "number",
+      "default": 0
+    },
+    "total_tips_burned": {
+      "type": "number",
+      "default": 0
+    },
+    "physical_nft_issued": {
+      "type": "number",
+      "default": 0
+    },
+    "store_nft_issued": {
+      "type": "number",
+      "default": 0
+    },
+    "store_nft_limit": {
+      "type": "number",
+      "default": 100
+    },
+    "is_node_provider": {
+      "type": "boolean",
+      "default": false
+    },
+    "user_matrix_count": {
+      "type": "number",
+      "default": 0
+    },
+    "merchant_matrix_count": {
+      "type": "number",
+      "default": 0
+    },
+    "node_matrix_count": {
+      "type": "number",
+      "default": 0
+    }
+  },
+  "required": [
+    "store_name",
+    "owner_email",
+    "category"
+  ]
+}

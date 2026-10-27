@@ -1,0 +1,58 @@
+{
+  "name": "LiquidityPool",
+  "type": "object",
+  "properties": {
+    "pool_name": {
+      "type": "string"
+    },
+    "token_a": {
+      "type": "string",
+      "enum": [
+        "NMS",
+        "ACS",
+        "YSE",
+        "GCP",
+        "USDT"
+      ]
+    },
+    "token_b": {
+      "type": "string",
+      "enum": [
+        "NMS",
+        "ACS",
+        "YSE",
+        "GCP",
+        "USDT"
+      ]
+    },
+    "reserve_a": {
+      "type": "number",
+      "default": 0
+    },
+    "reserve_b": {
+      "type": "number",
+      "default": 0
+    },
+    "tvl": {
+      "type": "number",
+      "default": 0
+    },
+    "apy": {
+      "type": "number",
+      "default": 0
+    },
+    "volume_24h": {
+      "type": "number",
+      "default": 0
+    },
+    "fee_percent": {
+      "type": "number",
+      "default": 0.3
+    }
+  },
+  "required": [
+    "pool_name",
+    "token_a",
+    "token_b"
+  ]
+}

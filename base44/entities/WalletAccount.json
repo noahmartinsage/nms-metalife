@@ -1,0 +1,50 @@
+{
+  "name": "WalletAccount",
+  "type": "object",
+  "properties": {
+    "account_name": {
+      "type": "string"
+    },
+    "account_type": {
+      "type": "string",
+      "enum": [
+        "main",
+        "savings",
+        "trading",
+        "staking",
+        "spending"
+      ]
+    },
+    "address": {
+      "type": "string"
+    },
+    "nms_balance": {
+      "type": "number",
+      "default": 0
+    },
+    "acs_balance": {
+      "type": "number",
+      "default": 0
+    },
+    "yse_balance": {
+      "type": "number",
+      "default": 0
+    },
+    "gcp_balance": {
+      "type": "number",
+      "default": 0
+    },
+    "is_nfc_enabled": {
+      "type": "boolean",
+      "default": false
+    },
+    "kyber_public_key": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "account_name",
+    "account_type",
+    "address"
+  ]
+}

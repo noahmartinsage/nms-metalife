@@ -1,0 +1,132 @@
+{
+  "name": "UserBalance",
+  "type": "object",
+  "properties": {
+    "user_email": {
+      "type": "string"
+    },
+    "available_nms": {
+      "type": "number",
+      "default": 0
+    },
+    "pending_release_nms": {
+      "type": "number",
+      "default": 0
+    },
+    "locked_nms": {
+      "type": "number",
+      "default": 0
+    },
+    "acs_balance": {
+      "type": "number",
+      "default": 0
+    },
+    "yse_balance": {
+      "type": "number",
+      "default": 0
+    },
+    "gcp_balance": {
+      "type": "number",
+      "default": 0
+    },
+    "total_consumption": {
+      "type": "number",
+      "default": 0
+    },
+    "total_rewards": {
+      "type": "number",
+      "default": 0
+    },
+    "consumption_level": {
+      "type": "number",
+      "default": 0
+    },
+    "referral_level": {
+      "type": "number",
+      "default": 0
+    },
+    "nft_synthesis_level": {
+      "type": "number",
+      "default": 0
+    },
+    "major_level": {
+      "type": "string",
+      "enum": [
+        "普通用户",
+        "M1",
+        "M2",
+        "M3",
+        "M4",
+        "M5",
+        "M6",
+        "M7",
+        "M8",
+        "M9"
+      ],
+      "default": "普通用户"
+    },
+    "release_speed_factor": {
+      "type": "number",
+      "default": 1
+    },
+    "release_days": {
+      "type": "number",
+      "default": 365
+    },
+    "referrer_email": {
+      "type": "string"
+    },
+    "referral_code": {
+      "type": "string"
+    },
+    "team_size": {
+      "type": "number",
+      "default": 0
+    },
+    "direct_referrals": {
+      "type": "number",
+      "default": 0
+    },
+    "user_type": {
+      "type": "string",
+      "enum": [
+        "普通用户",
+        "VIP用户",
+        "商家",
+        "节点服务商"
+      ],
+      "default": "普通用户"
+    },
+    "sign_in_days": {
+      "type": "number",
+      "default": 0
+    },
+    "last_sign_in": {
+      "type": "string",
+      "format": "date"
+    },
+    "nft_physical_count": {
+      "type": "number",
+      "default": 0
+    },
+    "nft_store_count": {
+      "type": "number",
+      "default": 0
+    },
+    "nft_node_count": {
+      "type": "number",
+      "default": 0
+    },
+    "nft_dividends_total": {
+      "type": "number",
+      "default": 0
+    },
+    "royalty_earnings_total": {
+      "type": "number",
+      "default": 0
+    }
+  },
+  "required": [
+    "user_email"
+  ]
+}

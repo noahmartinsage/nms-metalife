@@ -1,0 +1,53 @@
+{
+  "name": "PromotionLevel",
+  "type": "object",
+  "properties": {
+    "level_name": {
+      "type": "string",
+      "enum": [
+        "普通用户",
+        "VIP1",
+        "VIP2",
+        "VIP3",
+        "M1",
+        "M2",
+        "M3",
+        "M4",
+        "M5",
+        "M6",
+        "M7",
+        "M8",
+        "M9",
+        "杰出贡献者"
+      ]
+    },
+    "level_order": {
+      "type": "number"
+    },
+    "required_team_size": {
+      "type": "number"
+    },
+    "required_consumption": {
+      "type": "number"
+    },
+    "reward_ratio": {
+      "type": "number"
+    },
+    "level_diff_ratio": {
+      "type": "number"
+    },
+    "privileges": {
+      "type": "string"
+    },
+    "icon": {
+      "type": "string"
+    },
+    "color": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "level_name",
+    "level_order"
+  ]
+}

@@ -1,0 +1,43 @@
+{
+  "name": "ChatMessage",
+  "type": "object",
+  "properties": {
+    "region_code": {
+      "type": "string"
+    },
+    "sender_email": {
+      "type": "string"
+    },
+    "sender_name": {
+      "type": "string"
+    },
+    "sender_avatar": {
+      "type": "string"
+    },
+    "message_type": {
+      "type": "string",
+      "enum": [
+        "text",
+        "image",
+        "red_packet",
+        "nft"
+      ],
+      "default": "text"
+    },
+    "content": {
+      "type": "string"
+    },
+    "red_packet_id": {
+      "type": "string"
+    },
+    "is_pinned": {
+      "type": "boolean",
+      "default": false
+    }
+  },
+  "required": [
+    "region_code",
+    "sender_email",
+    "content"
+  ]
+}

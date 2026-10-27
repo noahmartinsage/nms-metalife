@@ -1,0 +1,130 @@
+{
+  "name": "NFTItem",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "image_url": {
+      "type": "string"
+    },
+    "nft_type": {
+      "type": "string",
+      "enum": [
+        "physical",
+        "store",
+        "node",
+        "personal"
+      ]
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "餐饮",
+        "零售",
+        "服务",
+        "娱乐",
+        "教育",
+        "医疗",
+        "其他"
+      ]
+    },
+    "price": {
+      "type": "number"
+    },
+    "original_value": {
+      "type": "number"
+    },
+    "royalty_percent": {
+      "type": "number",
+      "default": 10
+    },
+    "royalty_referrer": {
+      "type": "number",
+      "default": 2.5
+    },
+    "royalty_merchant": {
+      "type": "number",
+      "default": 2.5
+    },
+    "royalty_node": {
+      "type": "number",
+      "default": 2.5
+    },
+    "royalty_platform": {
+      "type": "number",
+      "default": 2.5
+    },
+    "owner_address": {
+      "type": "string"
+    },
+    "owner_email": {
+      "type": "string"
+    },
+    "creator_address": {
+      "type": "string"
+    },
+    "creator_email": {
+      "type": "string"
+    },
+    "merchant_id": {
+      "type": "string"
+    },
+    "merchant_name": {
+      "type": "string"
+    },
+    "token_id": {
+      "type": "string"
+    },
+    "is_for_sale": {
+      "type": "boolean",
+      "default": false
+    },
+    "rarity": {
+      "type": "string",
+      "enum": [
+        "common",
+        "rare",
+        "epic",
+        "legendary"
+      ],
+      "default": "common"
+    },
+    "trade_count": {
+      "type": "number",
+      "default": 0
+    },
+    "total_royalty_earned": {
+      "type": "number",
+      "default": 0
+    },
+    "dividend_earned": {
+      "type": "number",
+      "default": 0
+    },
+    "can_synthesize_with": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "synthesized_from": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "synthesis_level": {
+      "type": "number",
+      "default": 0
+    }
+  },
+  "required": [
+    "name",
+    "nft_type",
+    "price"
+  ]
+}

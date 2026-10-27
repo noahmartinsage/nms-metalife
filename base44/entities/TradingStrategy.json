@@ -1,0 +1,57 @@
+{
+  "name": "TradingStrategy",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "arbitrage",
+        "yield_farming",
+        "market_making",
+        "trend_following",
+        "sentiment"
+      ]
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "paused",
+        "stopped"
+      ],
+      "default": "paused"
+    },
+    "win_rate": {
+      "type": "number"
+    },
+    "pnl": {
+      "type": "number"
+    },
+    "pnl_percent": {
+      "type": "number"
+    },
+    "allocated_capital": {
+      "type": "number"
+    },
+    "risk_level": {
+      "type": "string",
+      "enum": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "default": "medium"
+    },
+    "trades_count": {
+      "type": "number",
+      "default": 0
+    }
+  },
+  "required": [
+    "name",
+    "type"
+  ]
+}

@@ -1,0 +1,56 @@
+{
+  "name": "Transaction",
+  "type": "object",
+  "properties": {
+    "tx_hash": {
+      "type": "string"
+    },
+    "block_number": {
+      "type": "number"
+    },
+    "from_address": {
+      "type": "string"
+    },
+    "to_address": {
+      "type": "string"
+    },
+    "amount": {
+      "type": "number"
+    },
+    "token_type": {
+      "type": "string",
+      "enum": [
+        "NMS",
+        "ACS",
+        "YSE",
+        "GCP"
+      ],
+      "default": "NMS"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "confirmed",
+        "failed"
+      ],
+      "default": "confirmed"
+    },
+    "gas_fee": {
+      "type": "number",
+      "default": 0
+    },
+    "quantum_signature": {
+      "type": "string"
+    },
+    "signature_time_ms": {
+      "type": "number"
+    }
+  },
+  "required": [
+    "tx_hash",
+    "from_address",
+    "to_address",
+    "amount"
+  ]
+}

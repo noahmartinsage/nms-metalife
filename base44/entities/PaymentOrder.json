@@ -1,0 +1,87 @@
+{
+  "name": "PaymentOrder",
+  "type": "object",
+  "properties": {
+    "order_no": {
+      "type": "string"
+    },
+    "merchant_id": {
+      "type": "string"
+    },
+    "merchant_email": {
+      "type": "string"
+    },
+    "merchant_name": {
+      "type": "string"
+    },
+    "user_email": {
+      "type": "string"
+    },
+    "amount": {
+      "type": "number"
+    },
+    "payment_method": {
+      "type": "string",
+      "enum": [
+        "nms",
+        "wechat",
+        "alipay",
+        "mixed"
+      ],
+      "default": "nms"
+    },
+    "tip_ratio": {
+      "type": "number"
+    },
+    "merchant_consumed": {
+      "type": "number"
+    },
+    "user_reward": {
+      "type": "number"
+    },
+    "merchant_return": {
+      "type": "number"
+    },
+    "vip_reward": {
+      "type": "number"
+    },
+    "level_diff_reward": {
+      "type": "number"
+    },
+    "contributor_reward": {
+      "type": "number"
+    },
+    "physical_nft_pool_add": {
+      "type": "number"
+    },
+    "nft_minted": {
+      "type": "boolean",
+      "default": false
+    },
+    "nft_id": {
+      "type": "string"
+    },
+    "burned_amount": {
+      "type": "number"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "completed",
+        "cancelled",
+        "refunded"
+      ],
+      "default": "pending"
+    },
+    "quantum_signature": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "order_no",
+    "merchant_email",
+    "user_email",
+    "amount"
+  ]
+}
