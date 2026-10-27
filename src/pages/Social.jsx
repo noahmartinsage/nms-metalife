@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import CommunityFeed from "@/components/social/CommunityFeed";
 import DAORegionChat from "@/components/social/DAORegionChat";
 import P2PSocialHub from "@/components/social/P2PSocialHub";
+import DIDEncryptedChat from "@/components/social/DIDEncryptedChat";
 import { useReferral } from "@/hooks/useReferral";
 
 export default function Social() {
@@ -24,6 +25,7 @@ export default function Social() {
         <TabsList>
           <TabsTrigger value="feed">社区动态</TabsTrigger>
           <TabsTrigger value="dao">DAO 聊天</TabsTrigger>
+          <TabsTrigger value="chat">加密聊天</TabsTrigger>
           <TabsTrigger value="p2p">P2P 社交</TabsTrigger>
         </TabsList>
 
@@ -40,6 +42,13 @@ export default function Social() {
 
         <TabsContent value="p2p">
           <P2PSocialHub referralCode={referralCode} />
+        </TabsContent>
+
+        <TabsContent value="chat">
+          <div className="grid gap-4 lg:grid-cols-[1.5fr_1fr]">
+            <DIDEncryptedChat />
+            <P2PSocialHub referralCode={referralCode} />
+          </div>
         </TabsContent>
       </Tabs>
     </div>

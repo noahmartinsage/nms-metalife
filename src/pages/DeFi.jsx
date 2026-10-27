@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/textarea";
 import { Select, SelectOption } from "@/components/ui/select";
 import { toast } from "@/components/ui/toast";
 import LiquidityManager from "@/components/defi/LiquidityManager";
+import CalendarSync from "@/components/calendar/CalendarSync";
 import { useSession } from "@/hooks/useSession";
 import { useEntityList } from "@/hooks/useEntity";
 import { fmtNum, sanitizeAmount } from "@/lib/format";
@@ -120,6 +121,19 @@ export default function DeFi() {
               <DataRow label="到期日" value={new Date(Date.now() + Number(term) * 86400000).toLocaleDateString("zh-CN")} />
               <DataRow label="释放加速" value="质押期间 +0.2x 叠加" valueClass="text-violet-300" />
             </div>
+            <CalendarSync
+              className="w-full"
+              filename="nms-staking-maturity"
+              label="到期提醒加入日历"
+              events={[
+                {
+                  date: new Date(Date.now() + Number(term) * 86400000).toISOString(),
+                  durationMin: 30,
+                  title: `NMS 质押到期：${amount} NMS（${term} 天 · ${(rate * 100).toFixed(0)}%）`,
+                  desc: `预计本息 ${(Number(amount) || 0) + est} NMS，到期后可在「钱包 → 质押账户」赎回。`,
+                },
+              ]}
+            />
             <Button className="w-full" variant="success" onClick={stake} disabled={busy}>
               <Coins className="h-4 w-4" /> {busy ? "质押中…" : "确认质押"}
             </Button>

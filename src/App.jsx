@@ -6,6 +6,8 @@ import { PAGE_ROUTES } from "./utils";
 
 import Home from "./pages/Home";
 import Champions from "./pages/Champions";
+import QuantumChain from "./pages/QuantumChain";
+import Register from "./pages/Register";
 import Wallet from "./pages/Wallet";
 import PaymentCenter from "./pages/PaymentCenter";
 import NFTMarket from "./pages/NFTMarket";
@@ -40,6 +42,8 @@ import PageNotFound from "./pages/PageNotFound";
 const ROUTES = [
   { path: PAGE_ROUTES.Home, element: Home },
   { path: PAGE_ROUTES.Champions, element: Champions },
+  { path: PAGE_ROUTES.QuantumChain, element: QuantumChain },
+  { path: PAGE_ROUTES.Register, element: Register },
   { path: PAGE_ROUTES.Wallet, element: Wallet },
   { path: PAGE_ROUTES.PaymentCenter, element: PaymentCenter },
   { path: PAGE_ROUTES.NFTMarket, element: NFTMarket },

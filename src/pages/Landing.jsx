@@ -56,11 +56,16 @@ export default function Landing() {
             <a href="#roadmap" className="hover:text-foreground">路线图</a>
             <Link to={createPageUrl("Whitepaper")} className="hover:text-foreground">白皮书</Link>
           </div>
-          <Link to={createPageUrl("Home")}>
-            <Button size="sm">
-              进入应用 <ArrowRight className="h-3.5 w-3.5" />
-            </Button>
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link to={createPageUrl("Register")} className="hidden text-xs text-muted-foreground hover:text-foreground sm:block">
+              注册
+            </Link>
+            <Link to={createPageUrl("Home")}>
+              <Button size="sm">
+                进入应用 <ArrowRight className="h-3.5 w-3.5" />
+              </Button>
+            </Link>
+          </div>
         </nav>
 
         <div className="relative mx-auto max-w-6xl px-5 pb-20 pt-14 text-center">
@@ -217,6 +222,11 @@ export default function Landing() {
             <Link to={createPageUrl("PaymentCenter")}>
               <Button size="lg" variant="outline">
                 <Zap className="h-4 w-4" /> 扫码消费
+              </Button>
+            </Link>
+            <Link to={createPageUrl("Register")}>
+              <Button size="lg" variant="outline">
+                <Users className="h-4 w-4" /> 注册开户
               </Button>
             </Link>
           </div>

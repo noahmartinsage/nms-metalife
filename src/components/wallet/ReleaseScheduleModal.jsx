@@ -2,6 +2,7 @@ import React from "react";
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis } from "recharts";
 import { CalendarClock } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import CalendarSync from "@/components/calendar/CalendarSync";
 import { buildReleaseSchedule, calcReleaseProgress } from "@/lib/engine";
 import { fmtNum } from "@/lib/format";
 
@@ -41,6 +42,24 @@ export default function ReleaseScheduleModal({ open, onOpenChange, balance }) {
               <Bar dataKey="amount" fill="#22d3ee" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
+        </div>
+
+        <div className="mt-2 flex items-center justify-between rounded-lg border border-white/10 bg-white/[0.03] px-2.5 py-1.5">
+          <span className="text-[10px] text-muted-foreground">将 7 个释放节点加入系统日历</span>
+          <CalendarSync
+            filename="nms-release-plan"
+            label="同步释放计划"
+            events={schedule.map((s) => {
+              const d = new Date(Date.now() + s.day * 86400000);
+              d.setHours(9, 0, 0, 0);
+              return {
+                date: d.toISOString(),
+                durationMin: 15,
+                title: `NMS 释放 D+${s.day}：${fmtNum(p.dailyRelease, 4)} NMS`,
+                desc: `当日释放 ${fmtNum(p.dailyRelease, 4)} NMS，剩余待释放 ${fmtNum(s.remaining)} NMS。`,
+              };
+            })}
+          />
         </div>
 
         <div className="mt-3 overflow-hidden rounded-xl border border-white/10">

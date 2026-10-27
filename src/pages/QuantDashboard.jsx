@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import StrategyStudio from "@/components/quant/StrategyStudio";
 import AlphaSystem from "@/components/quant/AlphaSystem";
+import AlphaSignals from "@/components/quant/AlphaSignals";
 import AICircuitBreaker from "@/components/quant/AICircuitBreaker";
 import CrossChainRebalancer from "@/components/quant/CrossChainRebalancer";
 import BacktestPanel from "@/components/quant/BacktestPanel";
@@ -63,7 +64,10 @@ export default function QuantDashboard() {
         </TabsContent>
 
         <TabsContent value="alpha">
-          <AlphaSystem />
+          <div className="grid gap-4 lg:grid-cols-2">
+            <AlphaSystem />
+            <AlphaSignals />
+          </div>
         </TabsContent>
 
         <TabsContent value="risk">

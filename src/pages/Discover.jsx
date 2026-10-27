@@ -51,6 +51,7 @@ const GROUPS = [
     icon: Gavel,
     items: [
       ["DAO 治理", "区划 DAO", "Social"],
+      ["量子公链", "L1-L4 架构", "QuantumChain"],
       ["链上 Agent", "Agent 经济", "OnChainAgent"],
       ["奇点", "生态终局", "Singularity"],
       ["生命科学", "健康数据资产", "LifeScience"],

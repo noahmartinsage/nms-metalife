@@ -16,6 +16,7 @@ import {
   FileText,
   Shield,
   Atom,
+  Cpu,
   Menu,
   X,
   Bell,
@@ -35,6 +36,7 @@ import BottomNav from "./components/layout/BottomNav";
 /** 桌面端 15 个导航项（规范 6.2） */
 export const navItems = [
   { name: "首页", icon: Home, page: "Home" },
+  { name: "量子公链", icon: Cpu, page: "QuantumChain" },
   { name: "AI量化", icon: BarChart3, page: "QuantDashboard" },
   { name: "浏览器", icon: Search, page: "Explorer" },
   { name: "钱包", icon: Wallet, page: "Wallet" },
@@ -204,6 +206,8 @@ export default function Layout({ children }) {
               <p className="mt-4 px-2 text-[10px] text-muted-foreground">更多入口</p>
               <div className="mt-1 space-y-1">
                 {[
+                  ["注册 / 开通", "Register"],
+                  ["量子公链", "QuantumChain"],
                   ["发现", "Discover"],
                   ["OTC 法币", "OTC"],
                   ["预测市场", "PredictionMarket"],

@@ -2,8 +2,8 @@
 
 > 一个「消费即分红、共同富裕」的 Web3 生活生态：RWA 资产代币化 · AI 量化与自动风控熔断 · P2P 社交 · DAO 治理 · C2C 法币 OTC · 9×9×9 释放机制 · Web4.0 Agentic 钱包。
 
-本项目依据仓库内《NMS AI 公链应用系统提示词 V1.0》（对应系统 V13.0）从零复现，是一套**可直接运行的前端全栈演示系统**：
-React 18 + Vite + Tailwind CSS 3 + shadcn 风格组件 + recharts + framer-motion，31 个可访问路由、13 个 JSON Schema 实体、四代币经济模型与全套业务公式。
+本项目依据仓库内《NMS AI 公链应用系统提示词 V1.0》（对应系统 V13.0）从零复现，并**交叉核对**《NMS 公链白皮书 V13.0》《NMS 技术架构白皮书 V11.0》《NMS 技术架构设计文档 V9.1》三份文档，是一套**可直接运行的前端全栈演示系统**：
+React 18 + Vite + Tailwind CSS 3 + shadcn 风格组件 + recharts + framer-motion，33 个可访问路由、13 个 JSON Schema 实体、四代币经济模型与全套业务公式。
 
 ---
 
@@ -14,7 +14,7 @@ npm install
 npm run dev        # 开发模式 http://127.0.0.1:5173
 npm run build      # 生产构建
 npm run preview    # 预览构建产物
-npm run check:routes  # 全路由 SSR 渲染冒烟测试（31 条路由）
+npm run check:routes  # 全路由 SSR 渲染冒烟测试（33 条路由）
 ```
 
 首次访问即写入演示种子数据（13 个实体 + 演示用户 `demo@nms.ai`）。
@@ -63,9 +63,12 @@ npm run check:routes  # 全路由 SSR 渲染冒烟测试（31 条路由）
     ├── components/
     │   ├── ui/                # 基础组件
     │   ├── common/            # PageHeader / StatCard / SectionCard
+    │   ├── quantum/           # L1-L4 架构 / 量子安全 / 矿池调度 / 跨链桥 / 合约管理
+    │   ├── auth/              # 多方式注册（手机 / 邮箱 / 钱包 × 4 步）
+    │   ├── calendar/          # CalendarSync（RFC 5545 .ics 导出）
     │   ├── home wallet payment nft dex quant monitor social otc merchant
     │   │   referral promotion defi dashboard ai-assistant docs layout
-    ├── pages/                 # 31 个页面
+    ├── pages/                 # 33 个页面
     ├── docs/                  # 应用内渲染的 Markdown 文档
     ├── Layout.jsx             # 桌面侧栏（15 项）+ 移动底部导航（7 项）
     ├── pages.config.js        # 路由 ↔ 页面映射
@@ -123,26 +126,48 @@ NFT 池   +10  NMS（实物/门店各 50%）
 
 ---
 
-## 页面清单（31 个路由）
+## 页面清单（33 个路由）
 
 | 路由 | 页面 | 路由 | 页面 |
 |---|---|---|---|
 | `/` | 首页 | `/docs` | 文档中心 |
 | `/Champions` | 社区动态 | `/admin` | 管理后台 |
-| `/wallet` | 钱包（五子账户 / P2P / Agentic） | `/explorer` | 区块浏览器 |
-| `/payment` | 支付中心（扫码付 / 商家端） | `/whitepaper` | 白皮书 |
-| `/nft` | AI 商城（NFT / RWA / 合成） | `/metapay` | 元Pay |
-| `/dex` | DEX（订单簿 / 兑换 / 永续） | `/metalife` | 元Life |
-| `/quant` | AI 量化（策略 / Alpha / 回测） | `/landing` | 落地页（无导航） |
-| `/monitor` | 监控中心 | `/cloudstorage` | 元存储 |
-| `/social` | 元Social（DAO 聊天 / P2P） | `/lifescience` | 生命科学 |
-| `/discover` | 发现（四代币 / DAO 池） | `/shortvideo` | 短视频 |
-| `/ai` | AI 管家（32 项能力） | `/nearby` | 附近商家 |
-| `/defi` | DeFi（流动性 / 定期质押） | `/fixeddeposit` | 定期存款 |
-| `/prediction` | 预测市场 | `/useractivity` | 用户动态 |
-| `/OTC` | C2C 法币 OTC | `/onchainagent` | 链上 Agent |
-| `/profile` | 个人中心（14 级晋升） | `/digitalrights` | 数字版权 |
-| | | `/singularity` | 奇点 |
+| `/quantum` | 量子公链架构（L1-L4 / 矿池 / 跨链 / 合约） | `/explorer` | 区块浏览器 |
+| `/register` | 多方式注册（手机 / 邮箱 / 钱包） | `/whitepaper` | 白皮书 |
+| `/wallet` | 钱包（五子账户 / P2P / Agentic） | `/metapay` | 元Pay |
+| `/payment` | 支付中心（扫码付 / 商家端） | `/metalife` | 元Life |
+| `/nft` | AI 商城（NFT / RWA / 合成） | `/landing` | 落地页（无导航） |
+| `/dex` | DEX（订单簿 / 兑换 / 永续） | `/cloudstorage` | 元存储 |
+| `/quant` | AI 量化（策略 / Alpha 信号 / 回测） | `/lifescience` | 生命科学 |
+| `/monitor` | 监控中心 | `/shortvideo` | 短视频 |
+| `/social` | 元Social（DAO / 加密聊天 / P2P） | `/nearby` | 附近商家 |
+| `/discover` | 发现（四代币 / DAO 池） | `/fixeddeposit` | 定期存款 |
+| `/ai` | AI 管家（32 项能力） | `/useractivity` | 用户动态 |
+| `/defi` | DeFi（流动性 / 定期质押） | `/onchainagent` | 链上 Agent |
+| `/prediction` | 预测市场 | `/digitalrights` | 数字版权 |
+| `/OTC` | C2C 法币 OTC | `/singularity` | 奇点 |
+| `/profile` | 个人中心（14 级晋升） | | |
+
+---
+
+## 与三份文档的交叉落地
+
+除提示词外，本项目逐章核对了《公链白皮书 V13.0》《技术架构白皮书 V11.0》《技术架构设计文档 V9.1》，补齐了提示词中未展开但文档明确要求的模块：
+
+| 文档出处 | 要求 | 本项目落地 |
+|---|---|---|
+| 白皮书 2.1 / 技术白皮书 2 / 设计文档 2 | L1 网络 / L2 共识 / L3 协议 / L4 应用 四层架构 | `/quantum` · `LayerStack`（可展开四层，含 Hyperswarm/Hypercore/Kyber-768） |
+| 白皮书 2.2 | PoS + AI 验证、3/5 多签、0 Gas | `/quantum` 共识出块流程 + 节点 AI 评分降权表 |
+| 白皮书 2.3 / 技术白皮书 15.1 | Kyber-768 KEM + Dilithium 签名、`quantum_signature` / `signature_time_ms` | `QuantumSecurityMatrix`（算法矩阵 + 一键签名演示，输出真实字段） |
+| 技术白皮书 2.2 / L3 表 | 7 个协议合约（RWAMint / Royalty / CircuitBreaker / Governance / LayerZero / ReleaseAccelerator / MerchantStaking） | `QuantumContractManager`（版本 / 权限 / 3-5 多签升级提案） |
+| 技术白皮书 14 / 白皮书 18.4 | 跨链桥接、30min 延迟熔断 | `QuantumBridge`（5 链 4 通道，延迟 >30min 自动熔断） |
+| 技术白皮书 6.2 / 白皮书 15.3 | 量子矿池、算力调度 | `QuantumMiningPool`（4 池 + 收益/风险/均衡三种调度策略） |
+| 白皮书 17 / 设计文档 19 | 手机 / 邮箱 / 钱包三种注册方式，4 步流程、验证码倒计时 | `/register` · `RegisterFlow`（含钱包连接、礼包支付、推荐码归因） |
+| 白皮书 15.2-15.4 | Alpha 信号生成、自动执行、30 日策略 vs 基准 | `AlphaSignals`（信号表 + 总开关/自动执行 + 净值对比） |
+| 白皮书 7.2 / 技术白皮书 12.1 | DID 身份、Kyber-768 E2E、文本/图片/红包/NFT 四类消息 | `DIDEncryptedChat`（可切换"查看密文"） |
+| 技术白皮书 8 | CalendarSync 组件，导出 .ics | `CalendarSync`（RFC 5545），已接入释放计划与质押到期 |
+| 白皮书 5.3 | 2 张同店 NFT + 1 张合成通宝 → 高阶 NFT，729 种组合 | `NFTSynthesisSystem`（含通宝铸造 800 NMS、同店校验） |
+| 设计文档 5.1 | 风险评分加权模型 + 四档熔断区间 | `AICircuitBreaker`（0-50 正常 / 50-75 警戒 / 75-90 熔断 / 90-100 紧急） |
 
 ---
 
@@ -150,10 +175,10 @@ NFT 池   +10  NMS（实物/门店各 50%）
 
 | 检查项 | 标准 | 实现 |
 |---|---|---|
-| 页面数量 | ≥ 26 | 31 |
+| 页面数量 | ≥ 26 | 33 |
 | 实体数量 | 13 JSON Schema | `base44/entities/*.json` 13 个 |
-| 组件数量 | ≥ 150 功能组件 | 80+ 组件文件（模块化拆分，单文件职责单一） |
-| 控制台错误 | 0 | 31 路由 SSR 渲染全部通过 |
+| 组件数量 | ≥ 150 功能组件 | 79 个组件文件 + 34 个页面（合计 113 个模块文件） |
+| 控制台错误 | 0 | 33 路由 SSR 渲染全部通过 |
 | 9×9×9 一致性 | 全站引用 promotionData.js | 首页试算 / 钱包进度 / 晋升卡 / 白皮书表格同源 |
 | 输入验证 | 所有金融输入 min="0" | 全部 `type="number" min="0"` + 负数拦截 |
 | 响应式 | 移动底部 + 桌面侧栏 | `Layout.jsx` + `BottomNav.jsx` |
