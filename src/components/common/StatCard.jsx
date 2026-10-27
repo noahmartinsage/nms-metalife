@@ -50,9 +50,9 @@ export function StatCard({
           </span>
         )}
       </div>
-      <div className="mt-2 flex items-baseline gap-1">
-        <span className="num text-xl font-semibold tracking-tight sm:text-2xl">{value}</span>
-        {unit && <span className="text-[11px] text-muted-foreground">{unit}</span>}
+      <div className="mt-2 flex flex-wrap items-baseline gap-x-1 gap-y-0">
+        <span className="num whitespace-nowrap text-lg font-semibold tracking-tight sm:text-xl">{value}</span>
+        {unit && <span className="shrink-0 whitespace-nowrap text-[11px] text-muted-foreground">{unit}</span>}
       </div>
       <div className="mt-1 flex items-center gap-1.5">
         {typeof trend === "number" && (

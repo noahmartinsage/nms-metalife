@@ -1,5 +1,5 @@
 import React, { useMemo } from "react";
-import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis } from "recharts";
+import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { Activity, Boxes, Coins, Landmark, ShieldCheck, TrendingUp } from "lucide-react";
 import { SectionCard } from "@/components/common/SectionCard";
 import { StatCard } from "@/components/common/StatCard";
@@ -18,7 +18,7 @@ export default function OnChainAssetDashboard() {
 
   return (
     <SectionCard title="链上资产仪表盘" desc="跨链桥 · RWA · 流动性池实时快照" icon={Activity}>
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-2">
         <StatCard label="协议 TVL" value={fmtNum(tvl)} unit="ACS" icon={Landmark} accent="cyan" />
         <StatCard label="NFT 资产估值" value={fmtNum(nftValue)} unit="NMS" icon={Boxes} accent="violet" />
         <StatCard label="流动性池" value={pools.length} unit="个" icon={Coins} accent="emerald" />
@@ -30,11 +30,12 @@ export default function OnChainAssetDashboard() {
           <AreaChart data={series} margin={{ top: 4, right: 0, left: 0, bottom: 0 }}>
             <defs>
               <linearGradient id="oad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#34d399" stopOpacity={0.5} />
+                <stop offset="0%" stopColor="#34d399" stopOpacity={0.32} />
                 <stop offset="100%" stopColor="#34d399" stopOpacity={0} />
               </linearGradient>
             </defs>
             <XAxis dataKey="date" hide />
+            <YAxis hide domain={["dataMin - 0.012", "dataMax + 0.012"]} />
             <Tooltip
               contentStyle={{
                 background: "rgba(13,21,38,0.96)",

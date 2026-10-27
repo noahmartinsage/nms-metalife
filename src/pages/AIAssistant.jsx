@@ -104,7 +104,7 @@ export default function AIAssistant() {
 
       <div className="grid gap-4 lg:grid-cols-[1.35fr_1fr]">
         <SectionCard title="能力矩阵" desc="按功能域分组，点击查看详情" icon={Sparkles}>
-          <div className="scroll-x gap-1">
+          <div className="flex flex-wrap gap-1">
             {DOMAINS.map((d) => {
               const Icon = d.icon;
               return (

@@ -72,7 +72,7 @@ export default function Landing() {
           <Badge variant="success" className="mx-auto">
             <Sparkles className="h-2.5 w-2.5" /> V13.0 · 提示词复现版
           </Badge>
-          <h1 className="mx-auto mt-5 max-w-3xl text-3xl font-bold leading-tight tracking-tight sm:text-5xl">
+          <h1 className="mx-auto mt-5 max-w-4xl text-balance text-3xl font-bold leading-tight tracking-tight sm:text-5xl">
             消费即分红，
             <span className="gradient-text">共同富裕</span>
             的 Web3 生活生态

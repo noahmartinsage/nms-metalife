@@ -148,8 +148,8 @@ export default function RegisterFlow() {
   };
 
   return (
-    <Card className="neon-border overflow-hidden">
-      <CardContent className="p-4 sm:p-5">
+    <Card className="neon-border h-full overflow-hidden">
+      <CardContent className="flex h-full flex-col p-4 sm:p-5">
         {/* 步骤条 */}
         <div className="flex items-center gap-1">
           {["身份类型", "账户验证", "支付开通", "完成"].map((label, i) => {
@@ -389,6 +389,25 @@ export default function RegisterFlow() {
         <p className="mt-3 flex items-center justify-center gap-1 text-[9px] text-muted-foreground">
           <ShieldCheck className="h-2.5 w-2.5" /> 账户信息由 Kyber-768 量子加密保护 · 演示环境不采集真实信息
         </p>
+
+        <div className="mt-4">
+          <div className="rounded-xl border border-white/10 bg-black/20 p-3">
+            <p className="text-[10px] font-medium">四步注册说明</p>
+            <div className="mt-1.5 grid gap-1.5 sm:grid-cols-2">
+              {[
+                ["① 身份类型", "普通用户免费注册；VIP / 商家需开通礼包"],
+                ["② 账户验证", "手机 / 邮箱验证码，或钱包签名免验证码"],
+                ["③ 支付开通", "75% 现金 + 25% NMS，首购 NMS 翻倍赠送"],
+                ["④ 完成", "获得 NMS 与专属推荐码，推荐关系永久归因"],
+              ].map(([t, d]) => (
+                <div key={t} className="rounded-lg bg-white/[0.03] px-2 py-1.5">
+                  <p className="text-[9px] font-medium text-cyan-200">{t}</p>
+                  <p className="text-[9px] leading-relaxed text-muted-foreground">{d}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
       </CardContent>
     </Card>
   );
