@@ -150,6 +150,24 @@ NFT 池   +10  NMS（实物/门店各 50%）
 
 ---
 
+## UI 设计系统（v3）
+
+深色金融科技 + 毛玻璃 + 彩色光效，全部由 `src/index.css` 的 utility 统一提供：
+
+| 类 | 用途 |
+|---|---|
+| `.glass` / `.glass-panel` / `.glass-soft` | 三级毛玻璃：卡片 / 侧栏顶栏弹窗 / 嵌套小块 |
+| `.glass-hover` | 悬浮抬升 2px + 青色描边 + 外发光 |
+| `.glow-{cyan,emerald,violet,amber,rose}` | 图标与徽标彩色光晕 |
+| `.aurora` | 页面级极光背景（4 个 blur-3xl 色斑，22s 漂移） |
+| `.gradient-text` | 主数字/大标题 青→绿→紫 渐变（9s 平移） |
+| `.neon-border` | 渐变描边强调卡 |
+
+配套改动：`StatCard` 按 accent 输出彩色光斑与底部光条；`Card`/`Dialog`/`Tabs`/`Input`/`Badge`/`Button` 全部玻璃化；
+所有动效在 `prefers-reduced-motion: reduce` 下自动关闭。
+
+---
+
 ## 与三份文档的交叉落地
 
 除提示词外，本项目逐章核对了《公链白皮书 V13.0》《技术架构白皮书 V11.0》《技术架构设计文档 V9.1》，补齐了提示词中未展开但文档明确要求的模块：

@@ -9,6 +9,7 @@ import { calcRoyaltySplit } from "@/lib/engine";
 import { fmtNum, mockQuantumSignature, shortHash } from "@/lib/format";
 import { useSession } from "@/hooks/useSession";
 import NFTArt, { RARITY_META } from "./NFTArt";
+import SupplyChainTracker from "./SupplyChainTracker";
 
 /** NFT 详情（购买 → 版税自动结算） */
 export default function NFTDetailDrawer({ nft, open, onOpenChange, onBought }) {
@@ -140,6 +141,10 @@ export default function NFTDetailDrawer({ nft, open, onOpenChange, onBought }) {
           <span className="num text-muted-foreground">
             卖家实收 {fmtNum(sellerReceives)} NMS
           </span>
+        </div>
+
+        <div className="mt-2">
+          <SupplyChainTracker nft={nft} />
         </div>
 
         <DialogFooter>

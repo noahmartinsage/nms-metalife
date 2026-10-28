@@ -21,6 +21,28 @@ const MARKETS = [
   { id: "m4", q: "NMS 公链 TPS 突破 50,000？", yes: 34, confidence: 0.41, volume: 920_000, end: "2027-03-31" },
 ];
 
+/** 7 日概率走势（确定性波动，用于迷你折线） */
+const probTrend = (yes) => {
+  const deltas = [-9, -5, -7, -2, 3, 1, 0];
+  return deltas.map((d) => Math.max(4, Math.min(96, yes + d)));
+};
+
+function Sparkline({ points, color = "#22d3ee" }) {
+  const w = 100;
+  const h = 26;
+  const min = Math.min(...points) - 2;
+  const max = Math.max(...points) + 2;
+  const step = w / (points.length - 1);
+  const d = points
+    .map((p, i) => `${i === 0 ? "M" : "L"}${(i * step).toFixed(2)},${(h - ((p - min) / (max - min)) * h).toFixed(2)}`)
+    .join(" ");
+  return (
+    <svg viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" className="h-5 flex-1">
+      <path d={d} fill="none" stroke={color} strokeWidth="1.6" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 export default function PredictionMarket() {
   const { balance, refresh } = useSession();
   const [marketId, setMarketId] = useState("m1");
@@ -107,6 +129,13 @@ export default function PredictionMarket() {
                 <span className="w-8 shrink-0 text-[9px] text-rose-300">NO</span>
                 <Progress value={100 - m.yes} className="h-1.5" indicatorClassName="bg-gradient-to-r from-rose-400 to-pink-400" />
                 <span className="num w-9 shrink-0 text-right text-[10px] text-rose-300">{100 - m.yes}%</span>
+              </div>
+              <div className="mt-1 flex items-center gap-1.5">
+                <span className="shrink-0 text-[8px] text-muted-foreground">7 日概率</span>
+                <Sparkline points={probTrend(m.yes)} color={m.yes >= 50 ? "#22d3ee" : "#94a3b8"} />
+                <span className="num shrink-0 text-[8px] text-muted-foreground">
+                  {probTrend(m.yes)[0]}% → {m.yes}%
+                </span>
               </div>
               <p className="mt-1.5 flex items-center gap-2 text-[9px] text-muted-foreground">
                 <span>成交额 {fmtNum(m.volume)} NMS</span>

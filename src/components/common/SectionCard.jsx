@@ -9,8 +9,12 @@ export function SectionCard({ title, desc, icon: Icon, actions, children, classN
     <Card id={id} className={cn("overflow-hidden", className)}>
       {(title || actions) && (
         <CardHeader className="flex-row items-center justify-between gap-2 pb-3">
-          <div className="flex min-w-0 items-center gap-2">
-            {Icon && <Icon className="h-4 w-4 shrink-0 text-cyan-300" />}
+          <div className="flex min-w-0 items-center gap-2.5">
+            {Icon && (
+              <span className="glow-cyan grid h-7 w-7 shrink-0 place-items-center rounded-lg border border-cyan-400/25 bg-gradient-to-br from-cyan-500/25 to-violet-500/10 text-cyan-200 backdrop-blur-md">
+                <Icon className="h-3.5 w-3.5" />
+              </span>
+            )}
             <div className="min-w-0">
               <CardTitle className="truncate text-sm">{title}</CardTitle>
               {desc && <p className="mt-0.5 truncate text-[11px] text-muted-foreground">{desc}</p>}

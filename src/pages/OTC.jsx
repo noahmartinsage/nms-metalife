@@ -19,6 +19,7 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "@/components/ui/toast";
 import MerchantStakingFlow from "@/components/otc/MerchantStakingFlow";
+import OTCAuditPanel from "@/components/otc/OTCAuditPanel";
 import { resolveMerchantGrade } from "@/lib/engine";
 import { fmtNum, sanitizeAmount } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -225,6 +226,7 @@ export default function OTC() {
 
         <div className="space-y-4">
           <MerchantStakingFlow />
+          <OTCAuditPanel />
           <SectionCard title="安全保障" icon={ShieldCheck}>
             <ul className="space-y-1 text-[10px] leading-relaxed text-muted-foreground">
               <li>· 平台 Escrow 托管卖家代币，买家确认后才放行</li>

@@ -29,7 +29,8 @@ export default function BalanceOverview({ balance }) {
 
   return (
     <Card className="neon-border relative overflow-hidden">
-      <div className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-cyan-500/15 blur-3xl" />
+      <div className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-cyan-500/20 blur-3xl" />
+      <div className="pointer-events-none absolute -left-20 bottom-0 h-44 w-44 rounded-full bg-violet-500/15 blur-3xl" />
       <CardContent className="relative p-4 sm:p-5">
         <div className="flex items-start justify-between">
           <div>
@@ -37,7 +38,7 @@ export default function BalanceOverview({ balance }) {
               <Wallet className="h-3 w-3" /> 可用余额
             </p>
             <div className="mt-1 flex items-end gap-2">
-              <span className="num text-3xl font-bold tracking-tight text-white sm:text-4xl">
+              <span className="num gradient-text text-3xl font-bold tracking-tight sm:text-4xl">
                 {fmtNum(balance?.available_nms || 0)}
               </span>
               <span className="pb-1 text-xs text-muted-foreground">NMS</span>

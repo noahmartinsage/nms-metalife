@@ -40,6 +40,11 @@ export default function Landing() {
     <div className="min-h-screen overflow-x-hidden">
       {/* Hero */}
       <section className="relative grid-bg overflow-hidden">
+        <div className="aurora" aria-hidden="true">
+          <span className="left-[-14%] top-[-18%] h-[420px] w-[420px] bg-cyan-500/30" />
+          <span className="right-[-12%] top-[-6%] h-[460px] w-[460px] bg-violet-500/25" style={{ animationDelay: "-8s" }} />
+          <span className="bottom-[-20%] left-[30%] h-[420px] w-[420px] bg-emerald-500/20" style={{ animationDelay: "-15s" }} />
+        </div>
         <div className="pointer-events-none absolute -left-32 -top-32 h-96 w-96 rounded-full bg-cyan-500/20 blur-[120px]" />
         <div className="pointer-events-none absolute -right-20 top-20 h-96 w-96 rounded-full bg-violet-500/20 blur-[120px]" />
 
@@ -101,7 +106,7 @@ export default function Landing() {
               ["18,492,000", "区块高度"],
               ["21,480", "TPS"],
             ].map(([v, k]) => (
-              <div key={k} className="rounded-2xl border border-white/10 bg-white/[0.03] p-3 backdrop-blur">
+              <div key={k} className="glass glass-hover rounded-2xl p-3">
                 <p className="num text-lg font-bold text-cyan-300 sm:text-xl">{v}</p>
                 <p className="text-[10px] text-muted-foreground">{k}</p>
               </div>
@@ -120,7 +125,7 @@ export default function Landing() {
             return (
               <div
                 key={f.t}
-                className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 transition-colors hover:border-cyan-400/30"
+                className="glass glass-hover sheen relative overflow-hidden rounded-2xl p-4"
               >
                 <span className="grid h-9 w-9 place-items-center rounded-xl border border-cyan-400/25 bg-cyan-400/10 text-cyan-300">
                   <Icon className="h-4 w-4" />
@@ -142,7 +147,7 @@ export default function Landing() {
           </p>
           <div className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {TOKENS.map((t) => (
-              <div key={t.symbol} className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+              <div key={t.symbol} className="glass glass-hover rounded-2xl p-4">
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-bold" style={{ color: t.color }}>
                     {t.symbol}

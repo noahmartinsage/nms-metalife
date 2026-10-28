@@ -16,7 +16,7 @@ export const MOBILE_NAV = [
 
 export default function BottomNav() {
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-white/10 bg-[#0a1120]/92 backdrop-blur-2xl lg:hidden">
+    <nav className="glass-panel fixed inset-x-0 bottom-0 z-50 border-t lg:hidden">
       <div className="safe-bottom mx-auto flex max-w-xl items-stretch justify-between px-1">
         {MOBILE_NAV.map((item) => {
           const Icon = item.icon;
@@ -37,7 +37,7 @@ export default function BottomNav() {
                   <span
                     className={cn(
                       "grid h-7 w-9 place-items-center rounded-lg transition-colors",
-                      isActive && "bg-cyan-400/12"
+                      isActive && "bg-gradient-to-br from-cyan-400/25 to-violet-400/10 shadow-[0_0_18px_-6px_rgba(34,211,238,0.85)]"
                     )}
                   >
                     <Icon className="h-[18px] w-[18px]" />

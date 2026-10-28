@@ -24,7 +24,7 @@ function TabsList({ className, children, ...props }) {
     <div
       role="tablist"
       className={cn(
-        "scroll-x gap-1 rounded-xl border border-white/10 bg-white/[0.04] p-1",
+        "scroll-x gap-1 rounded-xl border border-white/10 bg-white/[0.045] p-1 backdrop-blur-md",
         className
       )}
       {...props}
@@ -46,7 +46,7 @@ function TabsTrigger({ value, className, children, ...props }) {
       className={cn(
         "shrink-0 whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-medium transition-all",
         active
-          ? "bg-gradient-to-r from-cyan-500/90 to-sky-500/90 text-white shadow-sm shadow-cyan-500/25"
+          ? "bg-gradient-to-r from-cyan-500/90 to-sky-500/90 text-white shadow-[0_0_20px_-6px_rgba(34,211,238,0.9)]"
           : "text-muted-foreground hover:bg-white/5 hover:text-foreground",
         className
       )}

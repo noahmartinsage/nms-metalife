@@ -7,6 +7,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import StrategyStudio from "@/components/quant/StrategyStudio";
 import AlphaSystem from "@/components/quant/AlphaSystem";
 import AlphaSignals from "@/components/quant/AlphaSignals";
+import MultiAgentArena from "@/components/quant/MultiAgentArena";
 import AICircuitBreaker from "@/components/quant/AICircuitBreaker";
 import CrossChainRebalancer from "@/components/quant/CrossChainRebalancer";
 import BacktestPanel from "@/components/quant/BacktestPanel";
@@ -54,6 +55,7 @@ export default function QuantDashboard() {
           <TabsTrigger value="cross">跨链调度</TabsTrigger>
           <TabsTrigger value="backtest">回测</TabsTrigger>
           <TabsTrigger value="ai">AI 引擎</TabsTrigger>
+          <TabsTrigger value="arena">竞技场</TabsTrigger>
         </TabsList>
 
         <TabsContent value="strategy">
@@ -107,6 +109,13 @@ export default function QuantDashboard() {
                 ))}
               </div>
             </div>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="arena">
+          <div className="grid gap-4 lg:grid-cols-[1.1fr_1fr]">
+            <MultiAgentArena />
+            <StrategyStudio strategies={strategies} onChanged={refresh} />
           </div>
         </TabsContent>
 

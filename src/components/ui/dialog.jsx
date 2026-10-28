@@ -55,7 +55,7 @@ function DialogContent({ className, children, onClose, ...props }) {
   return (
     <div
       className={cn(
-        "relative max-h-[88vh] overflow-y-auto rounded-t-3xl border border-white/10 bg-[#0d1526]/95 p-5 shadow-2xl backdrop-blur-2xl sm:rounded-2xl",
+        "glass-panel relative max-h-[88vh] overflow-y-auto rounded-t-3xl border p-5 shadow-2xl sm:rounded-2xl",
         className
       )}
       {...props}

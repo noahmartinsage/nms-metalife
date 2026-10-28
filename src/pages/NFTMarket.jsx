@@ -10,6 +10,7 @@ import NFTDetailDrawer from "@/components/nft/NFTDetailDrawer";
 import NFTSynthesisSystem from "@/components/nft/NFTSynthesisSystem";
 import PersonalNFTPublish from "@/components/nft/PersonalNFTPublish";
 import ConsumptionProofMint from "@/components/nft/ConsumptionProofMint";
+import NFTArbitration from "@/components/nft/NFTArbitration";
 import RWANFTListingModal from "@/components/merchant/RWANFTListingModal";
 import { useEntityList } from "@/hooks/useEntity";
 import { useSession } from "@/hooks/useSession";
@@ -60,6 +61,7 @@ export default function NFTMarket() {
           <TabsTrigger value="mine">我的 NFT</TabsTrigger>
           <TabsTrigger value="synth">合成</TabsTrigger>
           <TabsTrigger value="publish">发行 / 凭证</TabsTrigger>
+          <TabsTrigger value="arbitration">仲裁</TabsTrigger>
         </TabsList>
 
         <TabsContent value="market">
@@ -94,6 +96,10 @@ export default function NFTMarket() {
 
         <TabsContent value="synth">
           <NFTSynthesisSystem nfts={nfts} balance={balance} onDone={refresh} />
+        </TabsContent>
+
+        <TabsContent value="arbitration">
+          <NFTArbitration />
         </TabsContent>
 
         <TabsContent value="publish">

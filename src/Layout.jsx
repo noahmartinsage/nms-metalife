@@ -67,11 +67,19 @@ export default function Layout({ children }) {
   };
 
   return (
-    <div className="min-h-screen">
+    <div className="relative min-h-screen">
+      {/* 极光背景层 */}
+      <div className="aurora" aria-hidden="true">
+        <span className="left-[-12%] top-[-14%] h-[380px] w-[380px] bg-cyan-500/30" />
+        <span className="right-[-10%] top-[4%] h-[420px] w-[420px] bg-violet-500/25" style={{ animationDelay: "-7s" }} />
+        <span className="bottom-[-16%] left-[26%] h-[460px] w-[460px] bg-emerald-500/20" style={{ animationDelay: "-13s" }} />
+        <span className="bottom-[4%] right-[16%] h-[320px] w-[320px] bg-fuchsia-500/20" style={{ animationDelay: "-18s" }} />
+      </div>
+
       {/* 桌面端侧栏 */}
-      <aside className="fixed inset-y-0 left-0 z-40 hidden w-[236px] flex-col border-r border-white/10 bg-[#0a1120]/80 backdrop-blur-2xl lg:flex">
+      <aside className="glass-panel fixed inset-y-0 left-0 z-40 hidden w-[236px] flex-col border-r lg:flex">
         <Link to="/" className="flex items-center gap-2.5 px-5 py-5">
-          <div className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-cyan-400 to-emerald-400 text-sm font-black text-slate-900">
+          <div className="glow-cyan grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-cyan-400 via-sky-400 to-emerald-400 text-sm font-black text-slate-900">
             N
           </div>
           <div className="leading-tight">
@@ -90,9 +98,9 @@ export default function Layout({ children }) {
                 end={item.page === "Home"}
                 className={({ isActive }) =>
                   cn(
-                    "group flex items-center gap-2.5 rounded-xl px-3 py-2 text-[13px] transition-all",
+                    "group relative flex items-center gap-2.5 rounded-xl px-3 py-2 text-[13px] transition-all",
                     isActive
-                      ? "bg-gradient-to-r from-cyan-500/15 to-transparent text-cyan-200"
+                      ? "bg-gradient-to-r from-cyan-400/20 via-cyan-400/[0.06] to-transparent text-cyan-100 shadow-[inset_0_0_0_1px_rgba(34,211,238,0.16)]"
                       : "text-muted-foreground hover:bg-white/5 hover:text-foreground"
                   )
                 }
@@ -101,7 +109,12 @@ export default function Layout({ children }) {
                   <>
                     <Icon className={cn("h-4 w-4", isActive && "text-cyan-300")} />
                     <span className="flex-1">{item.name}</span>
-                    {isActive && <span className="h-1.5 w-1.5 rounded-full bg-cyan-400" />}
+                    {isActive && (
+                      <>
+                        <span className="absolute left-0 top-1/2 h-4 w-0.5 -translate-y-1/2 rounded-full bg-cyan-400 shadow-[0_0_10px_rgba(34,211,238,0.95)]" />
+                        <span className="h-1.5 w-1.5 rounded-full bg-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.9)]" />
+                      </>
+                    )}
                   </>
                 )}
               </NavLink>
@@ -110,7 +123,7 @@ export default function Layout({ children }) {
         </nav>
 
         <div className="border-t border-white/10 p-3">
-          <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
+          <div className="glass-soft rounded-xl p-3">
             <div className="flex items-center gap-2">
               <Avatar name={user?.full_name} size={32} />
               <div className="min-w-0 flex-1">
@@ -136,7 +149,7 @@ export default function Layout({ children }) {
       </aside>
 
       {/* 移动端顶栏 */}
-      <header className="sticky top-0 z-40 border-b border-white/10 bg-[#0a1120]/85 backdrop-blur-2xl lg:hidden">
+      <header className="glass-panel sticky top-0 z-40 border-b lg:hidden">
         <div className="flex items-center gap-2 px-4 py-3">
           <button
             type="button"
@@ -147,7 +160,7 @@ export default function Layout({ children }) {
             <Menu className="h-4 w-4" />
           </button>
           <div className="flex items-center gap-2">
-            <div className="grid h-7 w-7 place-items-center rounded-lg bg-gradient-to-br from-cyan-400 to-emerald-400 text-[11px] font-black text-slate-900">
+            <div className="glow-cyan grid h-7 w-7 place-items-center rounded-lg bg-gradient-to-br from-cyan-400 via-sky-400 to-emerald-400 text-[11px] font-black text-slate-900">
               N
             </div>
             <span className="text-sm font-semibold">{current?.name || "NMS MetaLife"}</span>
@@ -179,7 +192,7 @@ export default function Layout({ children }) {
               animate={{ x: 0 }}
               exit={{ x: -280 }}
               transition={{ type: "spring", stiffness: 320, damping: 30 }}
-              className="relative h-full w-[260px] overflow-y-auto border-r border-white/10 bg-[#0a1120] p-3"
+              className="glass-panel relative h-full w-[260px] overflow-y-auto border-r p-3"
             >
               <div className="mb-3 flex items-center justify-between px-2">
                 <span className="text-sm font-semibold">全部功能</span>
@@ -240,7 +253,7 @@ export default function Layout({ children }) {
       </AnimatePresence>
 
       {/* 主内容 */}
-      <main className="lg:pl-[236px]">
+      <main className="relative z-10 lg:pl-[236px]">
         <div className="mx-auto w-full max-w-[1320px] px-3 pb-24 pt-4 sm:px-5 lg:pb-10 lg:pt-6">{children}</div>
       </main>
 
