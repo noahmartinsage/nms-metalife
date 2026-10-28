@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Camera, Check, QrCode, ScanLine, Store, Wallet } from "lucide-react";
+import { Camera, Check, CreditCard, QrCode, ScanLine, Store, Wallet } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,8 +11,16 @@ import { base44 } from "@/api/base44Client";
 import { calcPaymentSplit } from "@/lib/engine";
 import { fmtNum, mockQuantumSignature, sanitizeAmount } from "@/lib/format";
 import { useEntityList } from "@/hooks/useEntity";
+import SmartScanner from "./SmartScanner";
 
 /** 扫码支付（DID 打赏 → 链上结算 → 消费即铸造） */
+const METHODS = [
+  { key: "nms", label: "NMS", desc: "1:1 返利" },
+  { key: "acs", label: "ACS", desc: "稳定币" },
+  { key: "wechat", label: "微信", desc: "第三方" },
+  { key: "alipay", label: "支付宝", desc: "第三方" },
+];
+
 export default function ScanPayModal({ open, onOpenChange, balance, onComplete }) {
   const { data: stores } = useEntityList("MerchantStore", {}, "-created_date", 20);
   const [step, setStep] = useState(1);
@@ -20,8 +28,25 @@ export default function ScanPayModal({ open, onOpenChange, balance, onComplete }
   const [amount, setAmount] = useState("268");
   const [tip, setTip] = useState(10);
   const [busy, setBusy] = useState(false);
+  const [method, setMethod] = useState("nms");
 
   const split = calcPaymentSplit(Number(amount) || 0, merchant?.tip_ratio ?? tip);
+
+  const handleScan = ({ code }) => {
+    const hit = stores.find((s) => s.qr_code?.toUpperCase() === code.toUpperCase());
+    if (hit) {
+      setMerchant(hit);
+      setTip(hit.tip_ratio);
+      setStep(2);
+      return;
+    }
+    if (stores[0]) {
+      setMerchant(stores[0]);
+      setTip(stores[0].tip_ratio);
+      setStep(2);
+      toast.message(`未匹配到 ${code}，已按示例商家结算（演示）`);
+    }
+  };
 
   const reset = () => {
     setStep(1);
@@ -46,7 +71,7 @@ export default function ScanPayModal({ open, onOpenChange, balance, onComplete }
         merchant_name: merchant.store_name,
         user_email: balance?.user_email,
         amount: result.amount,
-        payment_method: "nms",
+        payment_method: method,
         tip_ratio: result.tipRatio,
         merchant_consumed: result.merchantConsumed,
         user_reward: result.userReward,
@@ -143,12 +168,7 @@ export default function ScanPayModal({ open, onOpenChange, balance, onComplete }
 
         {step === 1 && (
           <div className="space-y-3">
-            <div className="relative grid h-40 place-items-center overflow-hidden rounded-xl border border-dashed border-cyan-400/30 bg-[#0a1120]">
-              <div className="absolute inset-6 rounded-lg border-2 border-cyan-400/40" />
-              <div className="absolute left-6 right-6 top-1/2 h-0.5 animate-pulse-glow bg-cyan-400/70" />
-              <Camera className="h-8 w-8 text-cyan-300/70" />
-              <p className="absolute bottom-2 text-[10px] text-muted-foreground">摄像头扫码（演示环境不可用，请从下方选择商家）</p>
-            </div>
+            <SmartScanner onScan={handleScan} sampleCode={stores[0]?.qr_code || "NMS-STORE-0001"} />
 
             <div>
               <Label>选择商家</Label>
@@ -237,6 +257,30 @@ export default function ScanPayModal({ open, onOpenChange, balance, onComplete }
               <p className="mt-1 text-[10px] text-muted-foreground">
                 商家成本 {fmtNum(split.merchantConsumed)} NMS · 双倍返还 {fmtNum(split.merchantReturn)} NMS
               </p>
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between">
+                <Label>支付方式</Label>
+                <span className="text-[10px] text-muted-foreground">第三方支付为演示回调</span>
+              </div>
+              <div className="mt-1 grid grid-cols-4 gap-1">
+                {METHODS.map((m) => (
+                  <button
+                    key={m.key}
+                    type="button"
+                    onClick={() => setMethod(m.key)}
+                    className={`rounded-lg border px-1 py-1.5 text-center transition-colors ${
+                      method === m.key
+                        ? "border-cyan-400/45 bg-cyan-400/10 text-cyan-200"
+                        : "border-white/10 text-muted-foreground hover:border-white/25"
+                    }`}
+                  >
+                    <span className="block text-[10px] font-medium">{m.label}</span>
+                    <span className="block text-[8px] opacity-70">{m.desc}</span>
+                  </button>
+                ))}
+              </div>
             </div>
 
             <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">

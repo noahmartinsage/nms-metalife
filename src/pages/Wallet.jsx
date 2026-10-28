@@ -13,6 +13,8 @@ import TransferDialog from "@/components/wallet/TransferDialog";
 import ReceiveQRCode from "@/components/wallet/ReceiveQRCode";
 import P2PWalletHub from "@/components/wallet/P2PWalletHub";
 import AgenticWallet from "@/components/wallet/AgenticWallet";
+import DividendCenter from "@/components/wallet/DividendCenter";
+import P2PNetworkPanel from "@/components/p2p/P2PNetworkPanel";
 import { useSession } from "@/hooks/useSession";
 import { useEntityList } from "@/hooks/useEntity";
 import { fmtNum, fmtDate, shortHash } from "@/lib/format";
@@ -173,10 +175,13 @@ export default function Wallet() {
               value={`${balance?.release_days || 999} 天 · ${balance?.release_speed_factor || 1}x`}
             />
           </SectionCard>
+
+          <DividendCenter balance={balance} onDone={refresh} />
         </div>
 
         <div className="space-y-4">
           <P2PWalletHub address={accounts[0]?.address} />
+          <P2PNetworkPanel />
           <AgenticWallet />
         </div>
       </div>

@@ -6,6 +6,7 @@ import Home from "@/pages/Home";
 import Champions from "@/pages/Champions";
 import QuantumChain from "@/pages/QuantumChain";
 import Register from "@/pages/Register";
+import Invite from "@/pages/Invite";
 import Wallet from "@/pages/Wallet";
 import PaymentCenter from "@/pages/PaymentCenter";
 import NFTMarket from "@/pages/NFTMarket";
@@ -42,6 +43,7 @@ export const pagesConfig = {
   Champions: { component: Champions, label: "社区动态", path: "/Champions" },
   QuantumChain: { component: QuantumChain, label: "量子公链", path: "/quantum" },
   Register: { component: Register, label: "注册", path: "/register" },
+  Invite: { component: Invite, label: "邀请好友", path: "/invite" },
   Wallet: { component: Wallet, label: "钱包", path: "/wallet" },
   PaymentCenter: { component: PaymentCenter, label: "支付中心", path: "/payment" },
   NFTMarket: { component: NFTMarket, label: "AI商城", path: "/nft" },

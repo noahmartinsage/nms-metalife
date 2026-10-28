@@ -14,6 +14,8 @@ const ROUTES = [
   { path: "/dex", name: "04-dex", label: "DEX" },
   { path: "/nft", name: "05-nft", label: "AI 商城" },
   { path: "/register", name: "06-register", label: "注册" },
+  { path: "/invite?ref=NMSDEMO", name: "06b-invite", label: "邀请页" },
+  { path: "/payment", name: "06c-payment", label: "支付中心" },
   { path: "/ai", name: "07-ai", label: "AI 管家" },
   { path: "/social", name: "08-social", label: "元Social" },
   { path: "/landing", name: "09-landing", label: "落地页" },

@@ -8,6 +8,7 @@ import DAORegionChat from "@/components/social/DAORegionChat";
 import P2PSocialHub from "@/components/social/P2PSocialHub";
 import DIDEncryptedChat from "@/components/social/DIDEncryptedChat";
 import GovernancePanel from "@/components/governance/GovernancePanel";
+import P2PNetworkPanel from "@/components/p2p/P2PNetworkPanel";
 import { useReferral } from "@/hooks/useReferral";
 
 export default function Social() {
@@ -43,7 +44,10 @@ export default function Social() {
         </TabsContent>
 
         <TabsContent value="p2p">
-          <P2PSocialHub referralCode={referralCode} />
+          <div className="grid gap-4 lg:grid-cols-[1fr_1fr]">
+            <P2PSocialHub referralCode={referralCode} />
+            <P2PNetworkPanel />
+          </div>
         </TabsContent>
 
         <TabsContent value="gov">

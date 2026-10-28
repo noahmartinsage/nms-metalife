@@ -1,0 +1,34 @@
+{
+  "name": "NMS MetaLife · 元生活公链",
+  "short_name": "NMS MetaLife",
+  "description": "消费即分红的 Web3 生活生态：扫码支付、RWA 确权、9×9×9 释放、P2P 社交、DAO 治理",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0b1220",
+  "theme_color": "#0b1220",
+  "lang": "zh-CN",
+  "dir": "ltr",
+  "categories": ["finance", "shopping", "social"],
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    { "name": "扫码支付", "short_name": "扫码", "url": "/payment" },
+    { "name": "我的钱包", "short_name": "钱包", "url": "/wallet" },
+    { "name": "邀请好友", "short_name": "邀请", "url": "/invite" }
+  ]
+}

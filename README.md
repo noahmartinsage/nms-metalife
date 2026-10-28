@@ -150,6 +150,36 @@ NFT 池   +10  NMS（实物/门店各 50%）
 
 ---
 
+## v4：App 化 · P2P 落地 · 全链路闭环
+
+### 手机端 App 适配（PWA）
+- `public/manifest.webmanifest`：standalone 显示、竖屏、主题色、3 个快捷方式（扫码/钱包/邀请）
+- `public/sw.js`：应用外壳预缓存 + 导航网络优先、离线回退 `index.html`；静态资源缓存优先后台更新
+- `index.html`：apple-touch-icon、apple-mobile-web-app-*、viewport-fit=cover、OG 标签
+- `MobileQuickBar`：移动端右下角悬浮快捷操作（扫码付/收款/邀请/客服），桌面隐藏
+- 安全区适配（`.safe-bottom`）+ 触控目标 ≥ 36px
+
+### P2P 技术落地（真实可运行，非模拟）
+`src/lib/p2p.js` 用 **BroadcastChannel 作网络层**：同源每个标签页 = 一个对等节点，
+互发 hello/heartbeat、维护 peer 表与延迟、同步 append-only 账本（每条带 hash + prevHash，哈希去重）。
+打开新标签页即加入网络，`P2PNetworkPanel` 可实时看到在线节点、账本高度、同步事件与广播消息。
+
+### 消费 / 分红 / 扫码 / 支付 / 推荐 全链路
+| 能力 | 实现 |
+|---|---|
+| 扫码 | `SmartScanner`：`BarcodeDetector` + `getUserMedia` 真实识别；不支持时自动降级手动输入，流程不中断 |
+| 支付 | 支付方式四选（NMS/ACS/微信/支付宝），写入 `PaymentOrder.payment_method`，0 Gas 结算 |
+| 分红 | `DividendCenter`：五类分红明细、待结算、一键复投 / 提现（真实写 `Transaction` 与余额） |
+| 推荐 | `/invite?ref=CODE` 落地页：绑定确认、二维码 SVG 下载、9 层矩阵分布、奖励口径说明 |
+
+### 生产级加固
+- `ErrorBoundary` 全局错误边界（可恢复界面，不白屏）
+- `OfflineBanner` 断网提示（本地缓存与 P2P 账本仍可用）
+- 构建分包：react / charts / markdown / motion 独立 chunk，主包 1.53MB → 690KB（gzip 232KB）
+- `vite.config` 区分 SSR 构建，避免 manualChunks 与 external 冲突
+
+---
+
 ## UI 设计系统（v3）
 
 深色金融科技 + 毛玻璃 + 彩色光效，全部由 `src/index.css` 的 utility 统一提供：

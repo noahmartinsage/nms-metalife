@@ -32,6 +32,8 @@ import { base44 } from "@/api/base44Client";
 import { toast } from "@/components/ui/toast";
 import { Avatar } from "@/components/ui/separator";
 import BottomNav from "./components/layout/BottomNav";
+import MobileQuickBar from "./components/layout/MobileQuickBar";
+import OfflineBanner from "./components/layout/OfflineBanner";
 
 /** 桌面端 15 个导航项（规范 6.2） */
 export const navItems = [
@@ -68,6 +70,7 @@ export default function Layout({ children }) {
 
   return (
     <div className="relative min-h-screen">
+      <OfflineBanner />
       {/* 极光背景层 */}
       <div className="aurora" aria-hidden="true">
         <span className="left-[-12%] top-[-14%] h-[380px] w-[380px] bg-cyan-500/30" />
@@ -220,6 +223,7 @@ export default function Layout({ children }) {
               <div className="mt-1 space-y-1">
                 {[
                   ["注册 / 开通", "Register"],
+                  ["邀请好友", "Invite"],
                   ["量子公链", "QuantumChain"],
                   ["发现", "Discover"],
                   ["OTC 法币", "OTC"],
@@ -257,6 +261,7 @@ export default function Layout({ children }) {
         <div className="mx-auto w-full max-w-[1320px] px-3 pb-24 pt-4 sm:px-5 lg:pb-10 lg:pt-6">{children}</div>
       </main>
 
+      <MobileQuickBar />
       <BottomNav />
     </div>
   );
