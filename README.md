@@ -180,6 +180,65 @@ NFT 池   +10  NMS（实物/门店各 50%）
 
 ---
 
+## v8：幂等键下沉 · 退款审批流 · 每日对账定时任务
+
+### 幂等键下沉到前端
+
+原来每次点击都生成新 key（`pay_<merchant>_<random>`），重试会产生第二笔订单。现在改为**业务单号派生**：
+
+```
+前端生成 orderNo（NMS + 时间戳）→ 存入 ref → 幂等键 = `pay_${orderNo}`
+失败重试 → 沿用同一 orderNo → 服务端命中幂等 → 返回首次结果，不重复扣款
+支付成功 → 清空 ref，下一笔重新生成
+```
+
+服务端 `pay()` 接收 `orderNo`，缺省时才兜底生成，保证"同一业务单只有一笔账"。
+
+### 退款审批流
+
+不再"点了就退"，改为三级风控：
+
+| 金额 | 风险 | 处理 |
+|---|---|---|
+| ≤ ¥500 | low | **自动通过**，立即退款（记录 `auto_approved`） |
+| ¥500 – ¥5,000 | medium | 进入 `pending`，商家/管理员确认后放行 |
+| > ¥5,000 | high | 进入 `pending`，**仅 admin/owner 可批**，其他身份 403 |
+
+- 同一支付单重复申请自动去重（返回已有 pending）
+- 审批接口幂等：重复审批返回当前状态，不重复退款
+- 驳回不改变支付单状态（仍为 `settled`）
+
+```bash
+POST /api/pay/refund/request        { paymentId, reason }
+GET  /api/admin/refunds?status=pending
+POST /api/admin/refunds/:id/approve { note }
+POST /api/admin/refunds/:id/reject  { note }
+```
+
+前端「管理后台 → 数据后端 → 退款审批」直接显示待审条目与通过/驳回按钮。
+
+### 每日对账定时任务
+
+服务端启动即排程，每天 **00:00** 自动执行一次对账并落库（`reconcile_runs`），异常写入 `alerts` 并推送 webhook。
+
+```
+RECONCILE_HOUR=0           执行小时（默认 0 点）
+RECONCILE_ON_BOOT=1        启动时先跑一次
+ALERT_WEBHOOK=<url>        异常时 POST 告警（企业微信/飞书/Slack 通用 JSON）
+```
+
+- 对账结果落库：日期、触发方式（cron/manual/boot）、是否账平、通道差额、订单/交易笔数与金额、哈希链状态
+- 不平或链断 → 写 `alerts`（level=error）+ 控制台红字 + webhook
+- `GET /api/admin/reconcile/runs` 查看历史与下次执行时间
+- 管理后台「对账任务」卡展示：每日执行时间、下次时间、最近 3 次结果、未读告警数
+
+### 测试
+
+```bash
+node scripts/test-pay.mjs      # 25 项：支付通道
+node scripts/test-refund.mjs   # 18 项：退款审批 + 对账任务 + 告警
+```
+
 ## v7：自研支付通道（原子扣款 / 幂等 / 对账 / 签名收款码）
 
 服务端权威实现，前端 `ScanPayModal` 在 `VITE_API_MODE=server` 时自动切到通道（本地模式仍走 localStorage 演示）。

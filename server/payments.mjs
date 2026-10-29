@@ -109,6 +109,7 @@ export function pay({
   method = "nms",
   tipRatio,
   idempotencyKey,
+  orderNo: orderNoInput,
   qrToken,
 } = {}) {
   if (!idempotencyKey) {
@@ -155,7 +156,8 @@ export function pay({
   }
 
   const split = splitPayment(amt, tipRatio ?? merchant.tip_ratio ?? 10);
-  const orderNo = `NMS${Date.now().toString().slice(-9)}`;
+  /* 业务单号由前端生成并复用（幂等键 = pay:<orderNo>），服务端仅在缺省时兜底生成 */
+  const orderNo = orderNoInput || `NMS${Date.now().toString().slice(-9)}`;
   const orderId = newId("ord");
   const txHash = `0x${crypto.randomBytes(20).toString("hex")}`;
   const paymentId = newId("pay");
@@ -555,4 +557,271 @@ export function reconcile({ date } = {}) {
     chain: verifyChain(),
     checkedAt: nowISO(),
   };
+}
+
+/* ================================================================== */
+/* 退款审批流                                                          */
+/* ================================================================== */
+
+/** 风控阈值：≤500 自动通过；500-5000 商家/管理员确认；>5000 高风险需管理员审批 */
+export const REFUND_RULES = {
+  autoApproveLimit: 500,
+  merchantLimit: 5000,
+};
+
+db.exec(`
+  CREATE TABLE IF NOT EXISTS refund_requests (
+    id TEXT PRIMARY KEY,
+    payment_id TEXT NOT NULL,
+    order_no TEXT,
+    user_email TEXT,
+    merchant_id TEXT,
+    merchant_name TEXT,
+    amount REAL,
+    reason TEXT,
+    risk_level TEXT,
+    status TEXT,
+    requester TEXT,
+    approver TEXT,
+    note TEXT,
+    created_date TEXT,
+    decided_date TEXT
+  );
+  CREATE INDEX IF NOT EXISTS idx_refund_status ON refund_requests(status);
+  CREATE INDEX IF NOT EXISTS idx_refund_payment ON refund_requests(payment_id);
+
+  CREATE TABLE IF NOT EXISTS reconcile_runs (
+    id TEXT PRIMARY KEY,
+    run_date TEXT,
+    trigger_type TEXT,
+    balanced INTEGER,
+    channel_diff REAL,
+    diff REAL,
+    orders_count INTEGER,
+    orders_sum REAL,
+    tx_count INTEGER,
+    tx_sum REAL,
+    chain_ok INTEGER,
+    payload TEXT,
+    created_date TEXT
+  );
+  CREATE INDEX IF NOT EXISTS idx_recon_date ON reconcile_runs(run_date);
+
+  CREATE TABLE IF NOT EXISTS alerts (
+    id TEXT PRIMARY KEY,
+    level TEXT,
+    source TEXT,
+    message TEXT,
+    payload TEXT,
+    acknowledged INTEGER DEFAULT 0,
+    created_date TEXT
+  );
+`);
+
+const riskOf = (amount) => {
+  if (amount <= REFUND_RULES.autoApproveLimit) return "low";
+  if (amount <= REFUND_RULES.merchantLimit) return "medium";
+  return "high";
+};
+
+export function alert({ level = "warn", source = "system", message, payload = {} } = {}) {
+  const id = newId("alert");
+  db.prepare(
+    "INSERT INTO alerts (id, level, source, message, payload, acknowledged, created_date) VALUES (?,?,?,?,?,0,?)"
+  ).run(id, level, source, message, JSON.stringify(payload), nowISO());
+  if (level === "error") console.error(`[ALERT][${source}] ${message}`);
+  else console.warn(`[ALERT][${source}] ${message}`);
+  return { id, level, source, message };
+}
+
+export function listAlerts({ limit = 20, onlyUnacked = false } = {}) {
+  const rows = db
+    .prepare(
+      `SELECT * FROM alerts ${onlyUnacked ? "WHERE acknowledged = 0" : ""} ORDER BY created_date DESC LIMIT ?`
+    )
+    .all(limit);
+  return rows.map((r) => ({ ...r, payload: r.payload ? JSON.parse(r.payload) : null }));
+}
+
+/** 发起退款申请（小额自动通过，大额进入审批） */
+export function requestRefund({ paymentId, reason = "", requester = "demo@nms.ai" } = {}) {
+  const payment = db.prepare("SELECT * FROM payments WHERE id = ?").get(paymentId);
+  if (!payment) {
+    const err = new Error("payment_not_found");
+    err.status = 404;
+    throw err;
+  }
+  if (payment.status === "refunded") {
+    const err = new Error("already_refunded");
+    err.status = 409;
+    throw err;
+  }
+  if (payment.status !== "settled") {
+    const err = new Error("payment_not_refundable");
+    err.status = 409;
+    throw err;
+  }
+
+  const pending = db
+    .prepare("SELECT * FROM refund_requests WHERE payment_id = ? AND status = 'pending'")
+    .get(paymentId);
+  if (pending) return { ok: true, duplicate: true, request: pending };
+
+  const risk = riskOf(payment.amount);
+  const id = newId("rf");
+
+  /* 小额自动通过 */
+  if (risk === "low") {
+    const result = refund({ paymentId, idempotencyKey: `refund_auto_${paymentId}` });
+    db.prepare(
+      `INSERT INTO refund_requests (
+        id, payment_id, order_no, user_email, merchant_id, merchant_name, amount, reason,
+        risk_level, status, requester, approver, note, created_date, decided_date
+      ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`
+    ).run(
+      id,
+      paymentId,
+      payment.order_no,
+      payment.user_email,
+      payment.merchant_id,
+      payment.merchant_name,
+      payment.amount,
+      reason,
+      risk,
+      "auto_approved",
+      requester,
+      "system",
+      `金额 ≤ ${REFUND_RULES.autoApproveLimit}，风控自动通过`,
+      nowISO(),
+      nowISO()
+    );
+    return { ok: true, autoApproved: true, request: db.prepare("SELECT * FROM refund_requests WHERE id = ?").get(id), result };
+  }
+
+  db.prepare(
+    `INSERT INTO refund_requests (
+      id, payment_id, order_no, user_email, merchant_id, merchant_name, amount, reason,
+      risk_level, status, requester, approver, note, created_date, decided_date
+    ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`
+  ).run(
+    id,
+    paymentId,
+    payment.order_no,
+    payment.user_email,
+    payment.merchant_id,
+    payment.merchant_name,
+    payment.amount,
+    reason,
+    risk,
+    "pending",
+    requester,
+    null,
+    risk === "high" ? "高风险：需管理员审批" : "需商家或管理员确认",
+    nowISO(),
+    null
+  );
+
+  return { ok: true, pending: true, request: db.prepare("SELECT * FROM refund_requests WHERE id = ?").get(id) };
+}
+
+export function listRefunds({ status, limit = 20 } = {}) {
+  const rows = status
+    ? db.prepare("SELECT * FROM refund_requests WHERE status = ? ORDER BY created_date DESC LIMIT ?").all(status, limit)
+    : db.prepare("SELECT * FROM refund_requests ORDER BY created_date DESC LIMIT ?").all(limit);
+  return rows;
+}
+
+export function approveRefund({ requestId, approver = "admin", note = "" } = {}) {
+  const req = db.prepare("SELECT * FROM refund_requests WHERE id = ?").get(requestId);
+  if (!req) {
+    const err = new Error("request_not_found");
+    err.status = 404;
+    throw err;
+  }
+  if (req.status !== "pending") {
+    return { ok: true, idempotent: true, status: req.status, request: req };
+  }
+  if (req.risk_level === "high" && !["admin", "owner"].includes(String(approver).toLowerCase())) {
+    const err = new Error("high_risk_requires_admin");
+    err.status = 403;
+    throw err;
+  }
+
+  const result = refund({ paymentId: req.payment_id, idempotencyKey: `refund_approved_${req.payment_id}` });
+
+  db.prepare("UPDATE refund_requests SET status = ?, approver = ?, note = ?, decided_date = ? WHERE id = ?").run(
+    "approved",
+    approver,
+    note || "审批通过",
+    nowISO(),
+    requestId
+  );
+
+  return { ok: true, approved: true, request: db.prepare("SELECT * FROM refund_requests WHERE id = ?").get(requestId), result };
+}
+
+export function rejectRefund({ requestId, approver = "admin", note = "" } = {}) {
+  const req = db.prepare("SELECT * FROM refund_requests WHERE id = ?").get(requestId);
+  if (!req) {
+    const err = new Error("request_not_found");
+    err.status = 404;
+    throw err;
+  }
+  if (req.status !== "pending") {
+    return { ok: true, idempotent: true, status: req.status, request: req };
+  }
+  db.prepare("UPDATE refund_requests SET status = ?, approver = ?, note = ?, decided_date = ? WHERE id = ?").run(
+    "rejected",
+    approver,
+    note || "驳回",
+    nowISO(),
+    requestId
+  );
+  return { ok: true, rejected: true, request: db.prepare("SELECT * FROM refund_requests WHERE id = ?").get(requestId) };
+}
+
+/* ================================================================== */
+/* 对账任务落库                                                        */
+/* ================================================================== */
+
+/** 执行一次对账并落库；不平衡时自动告警 */
+export function runReconcile({ date, trigger = "manual" } = {}) {
+  const result = reconcile({ date });
+  const id = newId("rc");
+
+  db.prepare(
+    `INSERT INTO reconcile_runs (
+      id, run_date, trigger_type, balanced, channel_diff, diff,
+      orders_count, orders_sum, tx_count, tx_sum, chain_ok, payload, created_date
+    ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`
+  ).run(
+    id,
+    result.date,
+    trigger,
+    result.balanced ? 1 : 0,
+    result.channelDiff,
+    result.diff,
+    result.orders.count,
+    result.orders.sum,
+    result.transactions.count,
+    result.transactions.sum,
+    result.chain?.ok ? 1 : 0,
+    JSON.stringify(result),
+    nowISO()
+  );
+
+  if (!result.balanced || !result.chain?.ok) {
+    alert({
+      level: "error",
+      source: "reconcile",
+      message: `对账异常 ${result.date}：通道差额 ${result.channelDiff}，孤立通道单 ${result.orphanPayments.length}，哈希链 ${result.chain?.ok ? "正常" : "断裂"}`,
+      payload: { runId: id, date: result.date, channelDiff: result.channelDiff, chain: result.chain },
+    });
+  }
+
+  return { id, ...result, trigger };
+}
+
+export function listReconcileRuns({ limit = 10 } = {}) {
+  return db.prepare("SELECT * FROM reconcile_runs ORDER BY created_date DESC LIMIT ?").all(limit);
 }

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { Camera, Check, CreditCard, QrCode, ScanLine, Store, Wallet } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -30,6 +30,8 @@ export default function ScanPayModal({ open, onOpenChange, balance, onComplete }
   const [tip, setTip] = useState(10);
   const [busy, setBusy] = useState(false);
   const [method, setMethod] = useState("nms");
+  /** 业务单号：同一笔支付的重试复用同一单号 → 幂等键稳定，不会重复扣款 */
+  const orderNoRef = useRef(null);
 
   const split = calcPaymentSplit(Number(amount) || 0, merchant?.tip_ratio ?? tip);
 
@@ -77,6 +79,7 @@ export default function ScanPayModal({ open, onOpenChange, balance, onComplete }
     setStep(1);
     setMerchant(null);
     setAmount("268");
+    orderNoRef.current = null;
   };
 
   const pay = async () => {
@@ -89,14 +92,20 @@ export default function ScanPayModal({ open, onOpenChange, balance, onComplete }
     try {
       /* 服务端模式：走支付通道（原子扣款 + 幂等 + 链式存证） */
       if (API_MODE === "server") {
+        if (!orderNoRef.current) {
+          orderNoRef.current = `NMS${Date.now().toString().slice(-9)}`;
+        }
         const res = await payClient.pay({
           merchantId: merchant.id,
           amount: Number(amount),
           method,
           tipRatio: merchant.tip_ratio,
-          idempotencyKey: makeIdempotencyKey(`pay_${merchant.id}`),
+          orderNo: orderNoRef.current,
+          // 幂等键由业务单号派生：失败重试沿用同一单号，服务端只结算一次
+          idempotencyKey: `pay_${orderNoRef.current}`,
         });
         const splitRes = { ...calcPaymentSplit(Number(amount), merchant.tip_ratio), ...res.split };
+        orderNoRef.current = null; // 成功后释放单号，下一笔重新生成
         onOpenChange(false);
         reset();
         onComplete?.({

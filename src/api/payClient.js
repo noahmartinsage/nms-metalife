@@ -48,6 +48,23 @@ export const payClient = {
   /** 收款码验签（扫码侧） */
   verifyQr: (qrToken) => call("/qr/verify", { method: "POST", body: { token: qrToken } }),
 
+  /** 发起退款申请（小额自动通过，大额进入审批） */
+  requestRefund: ({ paymentId, reason }) => call("/pay/refund/request", { method: "POST", body: { paymentId, reason } }),
+
+  /** 退款审批列表 */
+  listRefunds: (status) => call(`/admin/refunds${status ? `?status=${status}` : ""}`),
+
+  /** 审批通过 / 驳回 */
+  approveRefund: (requestId, note) => call(`/admin/refunds/${encodeURIComponent(requestId)}/approve`, { method: "POST", body: { note, approver: "admin" } }),
+  rejectRefund: (requestId, note) => call(`/admin/refunds/${encodeURIComponent(requestId)}/reject`, { method: "POST", body: { note, approver: "admin" } }),
+
+  /** 对账历史 + 定时任务状态 */
+  reconcileRuns: (limit = 10) => call(`/admin/reconcile/runs?limit=${limit}`),
+  runReconcileNow: () => call("/admin/reconcile/run", { method: "POST", body: {} }),
+
+  /** 告警列表 */
+  alerts: (unackedOnly = false) => call(`/admin/alerts${unackedOnly ? "?unacked=1" : ""}`),
+
   /** 每日对账 */
   reconcile: (date) => call(`/admin/reconcile${date ? `?date=${date}` : ""}`),
 

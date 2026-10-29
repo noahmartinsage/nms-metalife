@@ -18,6 +18,11 @@ export default function BackendPanel() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [rec, setRec] = useState(null);
+  const [pendingRefunds, setPendingRefunds] = useState([]);
+  const [refundRules, setRefundRules] = useState({ autoApproveLimit: 500, merchantLimit: 5000 });
+  const [runs, setRuns] = useState([]);
+  const [scheduler, setScheduler] = useState({});
+  const [unackedAlerts, setUnackedAlerts] = useState(0);
 
   const isServer = API_MODE === "server";
 
@@ -35,8 +40,48 @@ export default function BackendPanel() {
 
   useEffect(() => {
     probe();
+    loadChannel();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const loadChannel = async () => {
+    if (!isServer) return;
+    try {
+      const [refundsRes, runsRes, alertsRes] = await Promise.all([
+        payClient.listRefunds("pending"),
+        payClient.reconcileRuns(5),
+        payClient.alerts(true),
+      ]);
+      setPendingRefunds(refundsRes.items || []);
+      if (refundsRes.rules) setRefundRules(refundsRes.rules);
+      setRuns(runsRes.runs || []);
+      setScheduler(runsRes.scheduler || {});
+      // 用最近一次对账结果填充面板，避免首屏显示「未对账」
+      const latest = runsRes.runs?.[0];
+      if (latest?.payload) {
+        try {
+          setRec(JSON.parse(latest.payload));
+        } catch (e) {
+          /* 忽略解析失败 */
+        }
+      }
+      setUnackedAlerts(Array.isArray(alertsRes) ? alertsRes.length : 0);
+    } catch (e) {
+      /* 通道接口不可用时静默降级 */
+    }
+  };
+
+  const decideRefund = async (id, action) => {
+    try {
+      if (action === "approve") await payClient.approveRefund(id, "管理员审批通过");
+      else await payClient.rejectRefund(id, "管理员驳回");
+      toast.success(action === "approve" ? "已通过并完成退款" : "已驳回");
+      await loadChannel();
+      probe();
+    } catch (e) {
+      toast.error(`操作失败：${e.message}`);
+    }
+  };
 
   const runReconcile = async () => {
     if (!isServer) return;
@@ -199,6 +244,78 @@ export default function BackendPanel() {
           <RefreshCw className="h-3 w-3" /> 重置服务端
         </Button>
       </div>
+
+      {isServer && (
+        <>
+          {/* 退款审批 */}
+          <div className="mt-2 rounded-xl border border-white/10 bg-black/20 p-2.5">
+            <div className="flex items-center justify-between">
+              <p className="text-[10px] font-medium">退款审批</p>
+              <Badge variant={pendingRefunds.length ? "warning" : "outline"}>{pendingRefunds.length} 待审</Badge>
+            </div>
+            <p className="mt-0.5 text-[9px] text-muted-foreground">
+              风控：≤{refundRules.autoApproveLimit} 自动通过 · ≤{refundRules.merchantLimit} 需确认 · 以上需管理员
+            </p>
+            {pendingRefunds.length === 0 ? (
+              <p className="mt-1.5 rounded-lg bg-white/[0.02] px-2 py-1.5 text-[9px] text-muted-foreground">
+                暂无待审批退款
+              </p>
+            ) : (
+              <div className="mt-1.5 space-y-1">
+                {pendingRefunds.slice(0, 3).map((r) => (
+                  <div key={r.id} className="rounded-lg bg-white/[0.03] px-2 py-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="num text-[9px]">{r.order_no}</span>
+                      <span className="num text-[10px] font-medium text-amber-300">{fmtNum(r.amount)}</span>
+                    </div>
+                    <p className="mt-0.5 truncate text-[8px] text-muted-foreground">
+                      {r.merchant_name} · {r.risk_level === "high" ? "高风险" : "需确认"} · {r.reason || "未填原因"}
+                    </p>
+                    <div className="mt-1 flex gap-1">
+                      <Button size="sm" variant="success" className="h-6 flex-1 text-[9px]" onClick={() => decideRefund(r.id, "approve")}>
+                        通过
+                      </Button>
+                      <Button size="sm" variant="ghost" className="h-6 flex-1 text-[9px]" onClick={() => decideRefund(r.id, "reject")}>
+                        驳回
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* 对账历史 */}
+          <div className="mt-2 rounded-xl border border-white/10 bg-black/20 p-2.5">
+            <div className="flex items-center justify-between">
+              <p className="text-[10px] font-medium">对账任务</p>
+              <Badge variant={unackedAlerts > 0 ? "danger" : "success"}>
+                {unackedAlerts > 0 ? `${unackedAlerts} 条告警` : "无告警"}
+              </Badge>
+            </div>
+            <p className="mt-0.5 text-[9px] text-muted-foreground">
+              每日 {String(scheduler.hour ?? 0).padStart(2, "0")}:00 自动执行
+              {scheduler.nextRunAt ? ` · 下次 ${new Date(scheduler.nextRunAt).toLocaleString("zh-CN", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" })}` : ""}
+            </p>
+            <div className="mt-1 space-y-0.5">
+              {runs.length === 0 ? (
+                <p className="rounded-lg bg-white/[0.02] px-2 py-1.5 text-[9px] text-muted-foreground">尚无对账记录</p>
+              ) : (
+                runs.slice(0, 3).map((r) => (
+                  <div key={r.id} className="flex items-center justify-between rounded bg-white/[0.02] px-2 py-1 text-[9px]">
+                    <span className="num text-muted-foreground">{r.run_date}</span>
+                    <span className="text-muted-foreground">{r.trigger_type === "cron" ? "自动" : "手动"}</span>
+                    <span className={r.balanced ? "text-emerald-300" : "text-rose-300"}>
+                      {r.balanced ? "账平" : `差 ${r.channel_diff}`}
+                    </span>
+                    <span className={r.chain_ok ? "text-emerald-300" : "text-rose-300"}>链{r.chain_ok ? "✓" : "✗"}</span>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </>
+      )}
 
       <div className="mt-2 flex items-center justify-between rounded-lg border border-white/10 bg-black/20 px-2 py-1.5 text-[9px]">
         <span className="flex items-center gap-1 text-muted-foreground">

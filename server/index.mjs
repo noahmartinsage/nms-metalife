@@ -26,7 +26,24 @@ import db, {
   findUserByEmail,
   dbInfo,
 } from "./db.mjs";
-import { pay, refund, getPayment, listPayments, reconcile, verifyChain, splitPayment } from "./payments.mjs";
+import {
+  pay,
+  refund,
+  getPayment,
+  listPayments,
+  reconcile,
+  verifyChain,
+  splitPayment,
+  requestRefund,
+  listRefunds,
+  approveRefund,
+  rejectRefund,
+  runReconcile,
+  listReconcileRuns,
+  listAlerts,
+  REFUND_RULES,
+} from "./payments.mjs";
+import { startScheduler, schedulerStatus, runReconcileNow } from "./scheduler.mjs";
 import { signMerchantPayload, verifyMerchantPayload, QR_META } from "./qr.mjs";
 
 const PORT = Number(process.env.PORT || 8787);
@@ -140,7 +157,9 @@ const server = http.createServer(async (req, res) => {
         time: new Date().toISOString(),
         boot: SERVER_BOOT,
         db: dbInfo(),
-        channel: { pay: "POST /api/pay", refund: "POST /api/pay/refund", reconcile: "GET /api/admin/reconcile", qr: QR_META },
+        channel: { pay: "POST /api/pay", refund: "POST /api/pay/refund/request", reconcile: "GET /api/admin/reconcile", qr: QR_META },
+        refundRules: REFUND_RULES,
+        scheduler: schedulerStatus(),
       });
     }
 
@@ -225,6 +244,40 @@ const server = http.createServer(async (req, res) => {
       return json(res, 200, refund(body));
     }
 
+    /* 退款申请（小额自动通过，大额进入审批） */
+    if (method === "POST" && url.pathname === "/api/pay/refund/request") {
+      const body = await readBody(req);
+      const user = authOf(req);
+      return json(res, 200, requestRefund({ ...body, requester: body.requester || user.email }));
+    }
+
+    if (method === "GET" && url.pathname === "/api/admin/refunds") {
+      return json(res, 200, {
+        rules: REFUND_RULES,
+        items: listRefunds({ status: url.searchParams.get("status") || undefined, limit: Number(url.searchParams.get("limit") || 20) }),
+      });
+    }
+
+    if (method === "POST" && seg[0] === "api" && seg[1] === "admin" && seg[2] === "refunds" && seg[3] && seg[4]) {
+      const body = await readBody(req);
+      const requestId = decodeURIComponent(seg[3]);
+      if (seg[4] === "approve") return json(res, 200, approveRefund({ ...body, requestId }));
+      if (seg[4] === "reject") return json(res, 200, rejectRefund({ ...body, requestId }));
+    }
+
+    if (method === "GET" && url.pathname === "/api/admin/reconcile/runs") {
+      return json(res, 200, { scheduler: schedulerStatus(), runs: listReconcileRuns({ limit: Number(url.searchParams.get("limit") || 10) }) });
+    }
+
+    if (method === "POST" && url.pathname === "/api/admin/reconcile/run") {
+      const body = await readBody(req).catch(() => ({}));
+      return json(res, 200, body?.viaCron ? await runReconcileNow("manual") : runReconcile({ trigger: "manual" }));
+    }
+
+    if (method === "GET" && url.pathname === "/api/admin/alerts") {
+      return json(res, 200, listAlerts({ limit: Number(url.searchParams.get("limit") || 20), onlyUnacked: url.searchParams.get("unacked") === "1" }));
+    }
+
     if (method === "GET" && seg[0] === "api" && seg[1] === "pay" && seg[2]) {
       const row = getPayment(decodeURIComponent(seg[2]));
       if (!row) return json(res, 404, { error: "payment_not_found" });
@@ -292,5 +345,8 @@ server.listen(PORT, HOST, () => {
   console.log(`\n  NMS MetaLife API  →  http://${HOST}:${PORT}`);
   console.log(`  数据库            →  ${SERVER_BOOT.dbFile}`);
   console.log(`  实体              →  ${info.entities} 个 ${SERVER_BOOT.seeded ? "(已导入演示数据)" : ""}`);
-  console.log(`  实体行数          →  ${Object.entries(info.counts).map(([k, v]) => `${k}:${v}`).join(" ")}\n`);
+  console.log(`  实体行数          →  ${Object.entries(info.counts).map(([k, v]) => `${k}:${v}`).join(" ")}`);
+  console.log(`  退款风控          →  ≤${REFUND_RULES.autoApproveLimit} 自动通过 / ≤${REFUND_RULES.merchantLimit} 需确认 / 以上需管理员`);
+  startScheduler();
+  console.log("");
 });

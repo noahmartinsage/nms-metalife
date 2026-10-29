@@ -21,16 +21,16 @@ const remoteHead = gh([`repos/${repo}/git/ref/heads/${branch}`, "--jq", ".object
 const localHead = execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }).trim();
 console.log("remote head:", remoteHead.slice(0, 7), "| local head:", localHead.slice(0, 7));
 
-const files = execFileSync("git", ["diff", "--name-status", `${remoteHead}`, `${localHead}`], {
-  encoding: "utf8",
-})
-  .trim()
-  .split("\n")
-  .filter(Boolean)
-  .map((line) => {
-    const [status, ...rest] = line.split("\t");
-    return { status: status[0], file: rest.join("\t") };
-  });
+const files = (process.env.GH_PUSH_FILES
+  ? process.env.GH_PUSH_FILES.split(",").map((f) => ({ status: "M", file: f.trim() })).filter((f) => f.file)
+  : execFileSync("git", ["diff", "--name-status", `${remoteHead}`, `${localHead}`], { encoding: "utf8" })
+      .trim()
+      .split("\n")
+      .filter(Boolean)
+      .map((line) => {
+        const [status, ...rest] = line.split("\t");
+        return { status: status[0], file: rest.join("\t") };
+      }));
 
 console.log(`changed files: ${files.length}`);
 
