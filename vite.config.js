@@ -12,6 +12,13 @@ export default defineConfig(({ isSsrBuild }) => ({
   server: {
     port: 5173,
     host: "127.0.0.1",
+    proxy: {
+      // 本地服务端（node server/index.mjs → 127.0.0.1:8787）
+      "/api": {
+        target: process.env.NMS_API_TARGET || "http://127.0.0.1:8787",
+        changeOrigin: true,
+      },
+    },
   },
   build: {
     outDir: "dist",

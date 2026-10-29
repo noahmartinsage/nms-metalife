@@ -180,6 +180,56 @@ NFT 池   +10  NMS（实物/门店各 50%）
 
 ---
 
+## v6：本地服务端 + SQLite 数据库 + Cloudflare 部署
+
+前端原本用 localStorage 模拟 BaaS。现在提供**真实服务端**，同一套 API 契约，两种运行模式：
+
+| 模式 | 启动 | 存储 |
+|---|---|---|
+| local（默认） | `npm run dev` | 浏览器 localStorage，离线可用 |
+| server | `npm run server` + `VITE_API_MODE=server npm run dev` | SQLite（`server/data/nms.db`，Node 内置 `node:sqlite`，零第三方依赖） |
+
+### 服务端
+
+```bash
+npm run server          # → http://127.0.0.1:8787
+curl http://127.0.0.1:8787/api/health
+```
+
+接口与 `base44Client` 完全一致：
+
+```
+GET    /api/health
+GET    /api/schemas
+POST   /api/entities/:name/list      { sort, limit }
+POST   /api/entities/:name/filter    { query, sort, limit }
+GET    /api/entities/:name/:id
+POST   /api/entities/:name           create
+PATCH  /api/entities/:name/:id       update
+DELETE /api/entities/:name/:id
+POST   /api/auth/me | /api/auth/login
+POST   /api/integrations/llm
+POST   /api/admin/seed | /api/admin/reset
+```
+
+- 表结构由 `server/schema.json`（前端实体 Schema 导出）自动生成，Schema 演进时自动补列
+- 首次启动自动导入 `server/seed.json`（13 实体 / 126 行演示数据）
+- 管理后台「数据后端」可一键把浏览器里的演示数据迁移到 SQLite
+
+### Cloudflare 部署（Workers + D1）
+
+```bash
+npx wrangler d1 create nms-metalife            # 记下 database_id
+npx wrangler d1 execute nms-metalife --file=./cloudflare/migrations/0001_schema.sql --remote
+npx wrangler d1 execute nms-metalife --file=./cloudflare/migrations/0002_seed.sql   --remote
+npx wrangler deploy --config cloudflare/wrangler.toml
+```
+
+前端切到线上：`VITE_API_MODE=server VITE_API_BASE=https://<worker>/api npm run build`。
+详见 `cloudflare/README.md`（含 Workers Assets 同域方案与数据迁移）。
+
+---
+
 ## UI 设计系统（v3）
 
 深色金融科技 + 毛玻璃 + 彩色光效，全部由 `src/index.css` 的 utility 统一提供：

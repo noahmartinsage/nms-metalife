@@ -8,7 +8,10 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview --port 4173",
-    "check:routes": "vite build --ssr scripts/ssr-check.jsx --outDir .ssr-tmp --logLevel warn && node .ssr-tmp/ssr-check.js"
+    "check:routes": "vite build --ssr scripts/ssr-check.jsx --outDir .ssr-tmp --logLevel warn && node .ssr-tmp/ssr-check.js",
+    "server": "node server/index.mjs",
+    "dump:seed": "vite build --ssr scripts/dump-seed.jsx --outDir .ssr-seed --logLevel warn && node .ssr-seed/dump-seed.js",
+    "dev:server": "vite --port 3000 --strictPort"
   },
   "dependencies": {
     "canvas-confetti": "^1.9.4",

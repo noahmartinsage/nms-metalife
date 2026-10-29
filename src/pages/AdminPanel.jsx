@@ -8,12 +8,13 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/toast";
-import { base44 } from "@/api/base44Client";
+import { base44, API_MODE } from "@/api/base44Client";
 import { useEntityList } from "@/hooks/useEntity";
 import { ENTITY_ORDER } from "@/api/schemas";
 import { fmtNum, fmtDate } from "@/lib/format";
 import { findTier } from "@/lib/promotionData";
 import ReadinessPanel from "@/components/admin/ReadinessPanel";
+import BackendPanel from "@/components/admin/BackendPanel";
 
 export default function AdminPanel() {
   const { data: users } = useEntityList("UserBalance", {}, "-total_consumption", 20);
@@ -146,6 +147,7 @@ export default function AdminPanel() {
 
         <TabsContent value="system">
           <div className="grid gap-3 lg:grid-cols-2">
+            <BackendPanel />
             <SectionCard title="系统参数" icon={Settings}>
               {[
                 ["平台名称", "NMS MetaLife"],
@@ -153,7 +155,7 @@ export default function AdminPanel() {
                 ["Gas 模式", "平台补贴（0 Gas）"],
                 ["量子签名", "Kyber-768 + Dilithium"],
                 ["多签委员会", "3/5"],
-                ["数据存储", "localStorage（演示）"],
+                ["数据存储", API_MODE === "server" ? "SQLite（node:sqlite）" : "localStorage（演示）"],
               ].map(([k, v]) => (
                 <div key={k} className="flex items-center justify-between border-b border-white/5 py-1.5 text-[10px] last:border-0">
                   <span className="text-muted-foreground">{k}</span>

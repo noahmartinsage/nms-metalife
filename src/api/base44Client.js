@@ -6,6 +6,7 @@
  * 使所有业务代码保持与 Base44 SDK 完全一致的调用方式（list / filter / create / update / delete / subscribe）。
  */
 import { buildSeed, DEMO_USER } from "./seed";
+import { base44 as httpBase44 } from "./httpClient";
 import { ENTITY_ORDER } from "./schemas";
 
 const DB_KEY = "nms_metalife_db_v13";
@@ -177,7 +178,7 @@ const getUser = () => {
 
 const sleep = (ms = 180) => new Promise((r) => setTimeout(r, ms));
 
-export const base44 = {
+const localBase44 = {
   auth: {
     async me() {
       await sleep(60);
@@ -257,5 +258,18 @@ export const base44 = {
     writeDB(buildSeed());
   },
 };
+
+/**
+ * 运行模式门面：
+ * - VITE_API_MODE=server → 走本地/远端 HTTP 服务（SQLite 持久化）
+ * - 默认 → 走 localStorage 模拟层（离线可用）
+ */
+export const API_MODE = import.meta.env.VITE_API_MODE === "server" ? "server" : "local";
+export const API_BASE = import.meta.env.VITE_API_BASE || "/api";
+
+export const base44 = API_MODE === "server" ? httpBase44 : localBase44;
+
+/** 仅供迁移工具使用：拿到 localStorage 版数据 */
+export const localClient = localBase44;
 
 export default base44;

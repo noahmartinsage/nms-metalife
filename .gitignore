@@ -11,3 +11,6 @@ npm-debug.log*
 .workbuddy-ai
 .ssr-tmp
 .preview
+server/data/*.db
+server/data/*.db-*
+.ssr-seed
