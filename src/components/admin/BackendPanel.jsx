@@ -7,6 +7,7 @@ import { toast } from "@/components/ui/toast";
 import { API_MODE, base44, localClient } from "@/api/base44Client";
 import { ENTITY_ORDER } from "@/api/schemas";
 import { fmtNum } from "@/lib/format";
+import payClient from "@/api/payClient";
 
 /**
  * 数据后端面板：展示运行模式（localStorage / SQLite 服务端），
@@ -16,6 +17,7 @@ export default function BackendPanel() {
   const [health, setHealth] = useState(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [rec, setRec] = useState(null);
 
   const isServer = API_MODE === "server";
 
@@ -35,6 +37,18 @@ export default function BackendPanel() {
     probe();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const runReconcile = async () => {
+    if (!isServer) return;
+    try {
+      const data = await payClient.reconcile();
+      setRec(data);
+      if (data.balanced) toast.success(`对账通过：通道与订单逐笔对齐（${data.pairs} 笔）`);
+      else toast.warning(`对账存在差异：${data.channelDiff}`);
+    } catch (e) {
+      toast.error(`对账失败：${e.message}`);
+    }
+  };
 
   const migrate = async () => {
     if (!isServer) {
@@ -130,6 +144,50 @@ export default function BackendPanel() {
           当前数据存在浏览器 localStorage。要启用真正的服务端数据库：
           <span className="num ml-1 rounded bg-black/30 px-1">npm run server</span>
           <span className="num ml-1 rounded bg-black/30 px-1">VITE_API_MODE=server npm run dev</span>
+        </div>
+      )}
+
+      {isServer && (
+        <div className="mt-2 rounded-xl border border-white/10 bg-black/20 p-2.5">
+          <div className="flex items-center justify-between">
+            <p className="text-[10px] font-medium">支付通道对账</p>
+            {rec ? (
+              <Badge variant={rec.balanced ? "success" : "danger"}>{rec.balanced ? "账平" : "有差异"}</Badge>
+            ) : (
+              <Badge variant="outline">未对账</Badge>
+            )}
+          </div>
+          {rec ? (
+            <div className="mt-1 space-y-0.5 text-[9px]">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">订单 / 交易 / 通道</span>
+                <span className="num">
+                  {rec.orders.count} / {rec.transactions.count} / {rec.channel.count} 笔
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">通道 vs 订单差额</span>
+                <span className={rec.channelDiff === 0 ? "num text-emerald-300" : "num text-rose-300"}>
+                  {rec.channelDiff}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">历史未匹配订单</span>
+                <span className="num text-muted-foreground">{rec.legacyOrphans ?? 0} 笔</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">账本哈希链</span>
+                <span className={rec.chain?.ok ? "text-emerald-300" : "text-rose-300"}>
+                  {rec.chain?.ok ? `完整（${rec.chain.length} 条）` : "已断裂"}
+                </span>
+              </div>
+            </div>
+          ) : (
+            <p className="mt-1 text-[9px] text-muted-foreground">校验 PaymentOrder / Transaction / payments 三方汇总</p>
+          )}
+          <Button size="sm" variant="outline" className="mt-1.5 w-full" onClick={runReconcile}>
+            <RefreshCw className="h-3 w-3" /> 立即对账
+          </Button>
         </div>
       )}
 

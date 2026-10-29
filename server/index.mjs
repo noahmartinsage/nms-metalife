@@ -9,7 +9,7 @@
  */
 import http from "node:http";
 import { URL } from "node:url";
-import {
+import db, {
   ENTITY_ORDER,
   SCHEMAS,
   SERVER_BOOT,
@@ -26,6 +26,8 @@ import {
   findUserByEmail,
   dbInfo,
 } from "./db.mjs";
+import { pay, refund, getPayment, listPayments, reconcile, verifyChain, splitPayment } from "./payments.mjs";
+import { signMerchantPayload, verifyMerchantPayload, QR_META } from "./qr.mjs";
 
 const PORT = Number(process.env.PORT || 8787);
 const HOST = process.env.HOST || "127.0.0.1";
@@ -138,6 +140,7 @@ const server = http.createServer(async (req, res) => {
         time: new Date().toISOString(),
         boot: SERVER_BOOT,
         db: dbInfo(),
+        channel: { pay: "POST /api/pay", refund: "POST /api/pay/refund", reconcile: "GET /api/admin/reconcile", qr: QR_META },
       });
     }
 
@@ -207,6 +210,69 @@ const server = http.createServer(async (req, res) => {
         return json(res, 200, text || "（模型未返回内容）");
       }
       return json(res, 200, `【本地推理】已收到：${prompt}\n\n当前为离线应答模式；配置 LLM_ENDPOINT 与 LLM_API_KEY 后将转发至真实模型。`);
+    }
+
+    /* ---------------- 支付通道 ---------------- */
+    if (method === "POST" && url.pathname === "/api/pay") {
+      const body = await readBody(req);
+      const user = authOf(req);
+      const result = pay({ ...body, userEmail: body.userEmail || user.email });
+      return json(res, result.idempotent ? 200 : 201, result);
+    }
+
+    if (method === "POST" && url.pathname === "/api/pay/refund") {
+      const body = await readBody(req);
+      return json(res, 200, refund(body));
+    }
+
+    if (method === "GET" && seg[0] === "api" && seg[1] === "pay" && seg[2]) {
+      const row = getPayment(decodeURIComponent(seg[2]));
+      if (!row) return json(res, 404, { error: "payment_not_found" });
+      return json(res, 200, row);
+    }
+
+    if (method === "GET" && url.pathname === "/api/admin/payments") {
+      const limit = Number(url.searchParams.get("limit") || 20);
+      return json(res, 200, listPayments({ limit, userEmail: url.searchParams.get("user") || undefined }));
+    }
+
+    if (method === "GET" && url.pathname === "/api/admin/reconcile") {
+      return json(res, 200, reconcile({ date: url.searchParams.get("date") || undefined }));
+    }
+
+    /* ---------------- 收款码签名 ---------------- */
+    if (method === "POST" && url.pathname === "/api/qr/sign") {
+      const body = await readBody(req);
+      const merchant = body.merchantId
+        ? db.prepare('SELECT * FROM "MerchantStore" WHERE id = ?').get(body.merchantId)
+        : db.prepare('SELECT * FROM "MerchantStore" WHERE qr_code = ?').get(body.qrCode);
+      if (!merchant) return json(res, 404, { error: "merchant_not_found" });
+      const signed = signMerchantPayload(merchant, { ttlMs: body.ttlMs });
+      return json(res, 200, { ...signed, merchant: { id: merchant.id, name: merchant.store_name, qr_code: merchant.qr_code } });
+    }
+
+    if (method === "POST" && url.pathname === "/api/qr/verify") {
+      const body = await readBody(req);
+      const result = verifyMerchantPayload(body.token);
+      if (!result.valid) return json(res, 400, result);
+      const merchant = db.prepare('SELECT * FROM "MerchantStore" WHERE id = ?').get(result.payload.mid);
+      return json(res, 200, {
+        ...result,
+        merchant: merchant
+          ? {
+              id: merchant.id,
+              name: merchant.store_name,
+              category: merchant.category,
+              qr_code: merchant.qr_code,
+              tip_ratio: merchant.tip_ratio,
+              is_verified: !!merchant.is_verified,
+            }
+          : null,
+      });
+    }
+
+    if (method === "GET" && url.pathname === "/api/chain/verify") {
+      return json(res, 200, verifyChain());
     }
 
     return json(res, 404, { error: "not_found", path: url.pathname });

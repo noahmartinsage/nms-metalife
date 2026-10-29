@@ -7,7 +7,8 @@ import { Label } from "@/components/ui/textarea";
 import { Slider } from "@/components/ui/slider";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/components/ui/toast";
-import { base44 } from "@/api/base44Client";
+import { base44, API_MODE } from "@/api/base44Client";
+import { payClient, makeIdempotencyKey } from "@/api/payClient";
 import { calcPaymentSplit } from "@/lib/engine";
 import { fmtNum, mockQuantumSignature, sanitizeAmount } from "@/lib/format";
 import { useEntityList } from "@/hooks/useEntity";
@@ -32,7 +33,31 @@ export default function ScanPayModal({ open, onOpenChange, balance, onComplete }
 
   const split = calcPaymentSplit(Number(amount) || 0, merchant?.tip_ratio ?? tip);
 
-  const handleScan = ({ code }) => {
+  const handleScan = async ({ code }) => {
+    /* 带签名的收款码：先验签，防伪造/篡改 */
+    if (code.startsWith("NMS1.")) {
+      if (API_MODE !== "server") {
+        toast.error("签名收款码需连接服务端校验，请从商家列表选择");
+        return;
+      }
+      try {
+        const res = await payClient.verifyQr(code);
+        const m = stores.find((x) => x.id === res.merchant?.id);
+        if (m) {
+          setMerchant(m);
+          setTip(m.tip_ratio);
+          setStep(2);
+          toast.success(`验签通过：${res.merchant.name}`);
+          return;
+        }
+        toast.error("验签通过但商家不存在");
+        return;
+      } catch (e) {
+        toast.error(`收款码验签失败（${e.detail?.reason || e.message}），已拒绝`);
+        return;
+      }
+    }
+
     const hit = stores.find((s) => s.qr_code?.toUpperCase() === code.toUpperCase());
     if (hit) {
       setMerchant(hit);
@@ -62,6 +87,40 @@ export default function ScanPayModal({ open, onOpenChange, balance, onComplete }
     }
     setBusy(true);
     try {
+      /* 服务端模式：走支付通道（原子扣款 + 幂等 + 链式存证） */
+      if (API_MODE === "server") {
+        const res = await payClient.pay({
+          merchantId: merchant.id,
+          amount: Number(amount),
+          method,
+          tipRatio: merchant.tip_ratio,
+          idempotencyKey: makeIdempotencyKey(`pay_${merchant.id}`),
+        });
+        const splitRes = { ...calcPaymentSplit(Number(amount), merchant.tip_ratio), ...res.split };
+        onOpenChange(false);
+        reset();
+        onComplete?.({
+          merchant,
+          split: splitRes,
+          order: {
+            order_no: res.orderNo,
+            amount: res.amount,
+            user_reward: res.split.userReward,
+            merchant_consumed: res.split.merchantConsumed,
+            merchant_return: res.split.merchantReturn,
+            vip_reward: res.split.vipReward,
+            level_diff_reward: res.split.levelDiffReward,
+            contributor_reward: res.split.contributorReward,
+            payment_method: res.method,
+            status: "completed",
+            created_date: res.settledAt,
+          },
+          nft: res.nft,
+          server: true,
+        });
+        return;
+      }
+
       const result = calcPaymentSplit(Number(amount), merchant.tip_ratio);
 
       // 支付前余额校验（按支付方式）

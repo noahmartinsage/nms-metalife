@@ -180,6 +180,59 @@ NFT 池   +10  NMS（实物/门店各 50%）
 
 ---
 
+## v7：自研支付通道（原子扣款 / 幂等 / 对账 / 签名收款码）
+
+服务端权威实现，前端 `ScanPayModal` 在 `VITE_API_MODE=server` 时自动切到通道（本地模式仍走 localStorage 演示）。
+
+### 支付主流程
+
+```
+校验（商家/余额/签名） → 锁定（available → locked） → 记账（订单 + 链上交易 + NFT + 商家池）
+→ 结算（locked → 0，返利到账） → 链式存证（prevHash 串接）
+```
+
+- **单事务**：任一步失败整体 `ROLLBACK`，不会出现"扣了钱没订单"
+- **幂等键**：`POST /api/pay` 必带 `idempotencyKey`，重复请求返回首次结果（`idempotent: true`），不重复扣款
+- **退款**：`POST /api/pay/refund`，以支付单状态做幂等，重复调用安全
+
+```bash
+curl -X POST http://127.0.0.1:8787/api/pay \
+  -H "content-type: application/json" \
+  -d '{"merchantId":"store_1","amount":100,"method":"nms","idempotencyKey":"order_20261029_001"}'
+```
+
+### 对账
+
+`GET /api/admin/reconcile?date=YYYY-MM-DD` 同时核对三方：
+
+| 维度 | 说明 |
+|---|---|
+| `channelDiff` | 通道记录（payments）与业务订单（PaymentOrder）逐笔对齐差额，**必须为 0** |
+| `diff` | 订单汇总 − 链上交易汇总（含历史种子数据，仅供观察） |
+| `orphanPayments` | 有通道记录但没有订单 → 严重异常 |
+| `orphanOrders` / `legacyOrphans` | 有订单但没有对应交易 → 历史数据标记 |
+| `chain` | 账本哈希链完整性（`prevHash` 逐条校验） |
+
+`balanced = channelDiff ≈ 0 && orphanPayments.length === 0`。管理后台「数据后端 → 支付通道对账」可一键执行。
+
+### 签名收款码
+
+```
+NMS1.<base64url(payload)>.<HMAC-SHA256 前 32 位>
+payload = { v, mid, code, name, iat, exp? }
+```
+
+- 商家侧：`POST /api/qr/sign` 生成（可设 TTL 做限时码）
+- 扫码侧：`POST /api/qr/verify` 先验签再下单，篡改即拒（`bad_signature`）
+- 前端 `SmartScanner` 扫到 `NMS1.` 前缀会走验签，失败直接拦截
+
+### 测试
+
+```bash
+npm run server &          # 先起服务
+node scripts/test-pay.mjs # 25 项断言：签名/验签/篡改/幂等/余额守恒/分账/超额拦截/退款/对账/哈希链
+```
+
 ## v6：本地服务端 + SQLite 数据库 + Cloudflare 部署
 
 前端原本用 localStorage 模拟 BaaS。现在提供**真实服务端**，同一套 API 契约，两种运行模式：
