@@ -62,8 +62,13 @@ export const mockQuantumSignature = () =>
 
 /** 金融输入防负数（规范 5.3） */
 export const sanitizeAmount = (raw) => {
-  const v = String(raw ?? "").replace(/[^\d.]/g, "");
+  const s = String(raw ?? "").trim();
+  // 负数直接归零（不能只靠剥离负号，否则 -12 会变成 12）
+  if (s.startsWith("-") || /^-\d/.test(s)) return "0";
+  const v = s.replace(/[^\d.]/g, "");
   const num = parseFloat(v);
   if (Number.isNaN(num) || num < 0) return "0";
-  return v;
+  // 多个小数点时只保留第一个
+  const parts = v.split(".");
+  return parts.length > 2 ? `${parts[0]}.${parts.slice(1).join("")}` : v;
 };

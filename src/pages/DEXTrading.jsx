@@ -26,7 +26,7 @@ const PERIODS = [
 ];
 
 export default function DEXTrading() {
-  const { balance } = useSession();
+  const { balance, refresh } = useSession();
   const [period, setPeriod] = useState(3);
   const candles = useMemo(
     () => candleSeries(PERIODS[period].count, PERIODS[period].minutes, NMS_GUIDE_PRICE, period + 11),
@@ -94,7 +94,7 @@ export default function DEXTrading() {
               <CandlestickChart candles={candles} height={252} />
             </SectionCard>
             <OrderBook mid={last.close} />
-            <TradePanel mid={last.close} balance={balance} />
+            <TradePanel mid={last.close} balance={balance} onDone={refresh} />
           </div>
           <div className="mt-4 grid gap-4 lg:grid-cols-2">
             <RecentTrades />
@@ -127,7 +127,7 @@ export default function DEXTrading() {
                 ))}
               </div>
             </SectionCard>
-            <TradePanel mid={last.close} balance={balance} />
+            <TradePanel mid={last.close} balance={balance} onDone={refresh} />
           </div>
         </TabsContent>
       </Tabs>

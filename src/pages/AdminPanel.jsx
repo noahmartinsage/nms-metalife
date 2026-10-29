@@ -13,6 +13,7 @@ import { useEntityList } from "@/hooks/useEntity";
 import { ENTITY_ORDER } from "@/api/schemas";
 import { fmtNum, fmtDate } from "@/lib/format";
 import { findTier } from "@/lib/promotionData";
+import ReadinessPanel from "@/components/admin/ReadinessPanel";
 
 export default function AdminPanel() {
   const { data: users } = useEntityList("UserBalance", {}, "-total_consumption", 20);
@@ -46,6 +47,7 @@ export default function AdminPanel() {
           <TabsTrigger value="merchants">商家管理</TabsTrigger>
           <TabsTrigger value="entities">实体数据</TabsTrigger>
           <TabsTrigger value="system">系统设置</TabsTrigger>
+          <TabsTrigger value="readiness">生产自检</TabsTrigger>
         </TabsList>
 
         <TabsContent value="users">
@@ -136,6 +138,10 @@ export default function AdminPanel() {
               ))}
             </div>
           </SectionCard>
+        </TabsContent>
+
+        <TabsContent value="readiness">
+          <ReadinessPanel />
         </TabsContent>
 
         <TabsContent value="system">

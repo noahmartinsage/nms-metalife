@@ -12,7 +12,7 @@ import { fmtNum, mockQuantumSignature, sanitizeAmount } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 /** 交易面板（现货 / 永续 · 1-125x · 0 资金费率） */
-export default function TradePanel({ mid = 0.42, balance }) {
+export default function TradePanel({ mid = 0.42, balance, onDone }) {
   const [side, setSide] = useState("buy");
   const [type, setType] = useState("limit");
   const [price, setPrice] = useState(mid.toFixed(4));
@@ -48,7 +48,19 @@ export default function TradePanel({ mid = 0.42, balance }) {
         quantum_signature: mockQuantumSignature(),
         signature_time_ms: Date.now(),
       });
-      toast.success(`${side === "buy" ? "买入" : "卖出"} ${fmtNum(amt, 0)} NMS @ ${px.toFixed(4)} 已提交`);
+
+      // 真实扣减保证金：可用 → 锁定（商用级资金一致性）
+      if (balance?.id) {
+        await base44.entities.UserBalance.update(balance.id, {
+          available_nms: Math.max(0, (balance.available_nms || 0) - margin),
+          locked_nms: (balance.locked_nms || 0) + margin,
+        });
+      }
+
+      toast.success(
+        `${side === "buy" ? "买入" : "卖出"} ${fmtNum(amt, 0)} NMS @ ${px.toFixed(4)} 已提交，冻结保证金 ${fmtNum(margin)} NMS`
+      );
+      onDone?.();
     } catch (e) {
       toast.error("下单失败");
     } finally {

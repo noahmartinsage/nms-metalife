@@ -64,6 +64,18 @@ export default function ScanPayModal({ open, onOpenChange, balance, onComplete }
     try {
       const result = calcPaymentSplit(Number(amount), merchant.tip_ratio);
 
+      // 支付前余额校验（按支付方式）
+      if (method === "nms" && (balance?.available_nms || 0) < result.amount) {
+        toast.error("可用 NMS 不足，请切换支付方式或先充值");
+        setBusy(false);
+        return;
+      }
+      if (method === "acs" && (balance?.acs_balance || 0) < result.amount) {
+        toast.error("ACS 余额不足，请切换支付方式");
+        setBusy(false);
+        return;
+      }
+
       const order = await base44.entities.PaymentOrder.create({
         order_no: `NMS${Date.now().toString().slice(-9)}`,
         merchant_id: merchant.id,
@@ -107,12 +119,28 @@ export default function ScanPayModal({ open, onOpenChange, balance, onComplete }
       });
 
       if (balance?.id) {
-        await base44.entities.UserBalance.update(balance.id, {
-          available_nms: (balance.available_nms || 0) + result.userReward,
+        const patch = {
           total_consumption: (balance.total_consumption || 0) + result.amount,
           total_rewards: (balance.total_rewards || 0) + result.userReward,
           nft_physical_count: (balance.nft_physical_count || 0) + 1,
-        });
+        };
+
+        if (method === "nms") {
+          // NMS 支付：扣本币，再按 1:1 返利
+          patch.available_nms = Math.max(
+            0,
+            (balance.available_nms || 0) - result.amount + result.userReward
+          );
+        } else if (method === "acs") {
+          // ACS 支付：扣稳定币，返 NMS
+          patch.acs_balance = Math.max(0, (balance.acs_balance || 0) - result.amount);
+          patch.available_nms = (balance.available_nms || 0) + result.userReward;
+        } else {
+          // 微信 / 支付宝：站外现金结算，仅入账返利
+          patch.available_nms = (balance.available_nms || 0) + result.userReward;
+        }
+
+        await base44.entities.UserBalance.update(balance.id, patch);
       }
 
       await base44.entities.MerchantStore.update(merchant.id, {
