@@ -9,6 +9,7 @@ import Home from "./pages/Home";
 import Champions from "./pages/Champions";
 import QuantumChain from "./pages/QuantumChain";
 import Register from "./pages/Register";
+import Login from "./pages/Login";
 import Invite from "./pages/Invite";
 import Wallet from "./pages/Wallet";
 import PaymentCenter from "./pages/PaymentCenter";
@@ -45,6 +46,7 @@ const ROUTES = [
   { path: PAGE_ROUTES.Home, element: Home },
   { path: PAGE_ROUTES.Champions, element: Champions },
   { path: PAGE_ROUTES.QuantumChain, element: QuantumChain },
+  { path: PAGE_ROUTES.Login, element: Login },
   { path: PAGE_ROUTES.Register, element: Register },
   { path: PAGE_ROUTES.Invite, element: Invite },
   { path: PAGE_ROUTES.Wallet, element: Wallet },

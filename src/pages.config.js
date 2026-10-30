@@ -5,6 +5,7 @@
 import Home from "@/pages/Home";
 import Champions from "@/pages/Champions";
 import QuantumChain from "@/pages/QuantumChain";
+import Login from "@/pages/Login";
 import Register from "@/pages/Register";
 import Invite from "@/pages/Invite";
 import Wallet from "@/pages/Wallet";
@@ -42,6 +43,7 @@ export const pagesConfig = {
   Home: { component: Home, label: "首页", path: "/" },
   Champions: { component: Champions, label: "社区动态", path: "/Champions" },
   QuantumChain: { component: QuantumChain, label: "量子公链", path: "/quantum" },
+  Login: { component: Login, label: "登录", path: "/login" },
   Register: { component: Register, label: "注册", path: "/register" },
   Invite: { component: Invite, label: "邀请好友", path: "/invite" },
   Wallet: { component: Wallet, label: "钱包", path: "/wallet" },

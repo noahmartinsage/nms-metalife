@@ -40,7 +40,11 @@ for (const { status, file } of files) {
     entries.push({ path: file, mode: "100644", type: "blob", sha: null });
     continue;
   }
-  const buf = fs.readFileSync(path.resolve(file));
+  let buf = fs.readFileSync(path.resolve(file));
+  /* 文本文件统一转 LF，避免 Windows CRLF 造成远程行尾漂移（与 .gitattributes 对齐） */
+  if (!/\.(png|jpe?g|gif|webp|ico|woff2?|ttf|db|zip|mp4|pdf)$/i.test(file)) {
+    buf = Buffer.from(buf.toString("utf8").replace(/\r\n/g, "\n"), "utf8");
+  }
   const body = JSON.stringify({ content: buf.toString("base64"), encoding: "base64" });
   const sha = gh(["-X", "POST", `repos/${repo}/git/blobs`, "--input", "-", "--jq", ".sha"], body);
   entries.push({ path: file, mode: "100644", type: "blob", sha });

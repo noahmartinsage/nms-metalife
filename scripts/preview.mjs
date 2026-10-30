@@ -13,6 +13,7 @@ const ROUTES = [
   { path: "/wallet", name: "03-wallet", label: "钱包" },
   { path: "/dex", name: "04-dex", label: "DEX" },
   { path: "/nft", name: "05-nft", label: "AI 商城" },
+  { path: "/login", name: "06a-login", label: "登录" },
   { path: "/register", name: "06-register", label: "注册" },
   { path: "/invite?ref=NMSDEMO", name: "06b-invite", label: "邀请页" },
   { path: "/payment", name: "06c-payment", label: "支付中心" },

@@ -222,6 +222,7 @@ export default function Layout({ children }) {
               <p className="mt-4 px-2 text-[10px] text-muted-foreground">更多入口</p>
               <div className="mt-1 space-y-1">
                 {[
+                  ["登录", "Login"],
                   ["注册 / 开通", "Register"],
                   ["邀请好友", "Invite"],
                   ["量子公链", "QuantumChain"],

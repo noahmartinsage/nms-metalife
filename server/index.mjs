@@ -42,7 +42,21 @@ import {
   listReconcileRuns,
   listAlerts,
   REFUND_RULES,
+  compensate,
 } from "./payments.mjs";
+import { audit, listAudit, auditStats } from "./audit.mjs";
+import {
+  issueToken,
+  verifyToken,
+  revokeToken,
+  sendOtp,
+  loginWithOtp,
+  resolveIdentity,
+  requireAuth,
+  requireRole,
+  AUTH_META,
+  STRICT,
+} from "./auth.mjs";
 import { startScheduler, schedulerStatus, runReconcileNow } from "./scheduler.mjs";
 import { signMerchantPayload, verifyMerchantPayload, QR_META } from "./qr.mjs";
 
@@ -102,6 +116,13 @@ const readBody = (req) =>
     req.on("error", reject);
   });
 
+const securityHeaders = (res) => {
+  res.setHeader("x-content-type-options", "nosniff");
+  res.setHeader("x-frame-options", "SAMEORIGIN");
+  res.setHeader("referrer-policy", "no-referrer");
+  res.setHeader("permissions-policy", "camera=(self), microphone=()");
+};
+
 const cors = (req, res) => {
   const origin = req.headers.origin;
   if (origin && ALLOWED_ORIGINS.includes(origin)) {
@@ -115,24 +136,13 @@ const cors = (req, res) => {
   res.setHeader("access-control-max-age", "600");
 };
 
-const authOf = (req) => {
-  const raw = req.headers.authorization || "";
-  const token = raw.startsWith("Bearer ") ? raw.slice(7) : null;
-  if (token) {
-    const user = findUserByToken(token);
-    if (user) return { id: user.id, email: user.email, full_name: user.full_name, role: user.role };
-  }
-  const email = req.headers["x-user-email"];
-  if (email) {
-    const user = findUserByEmail(String(email));
-    if (user) return { id: user.id, email: user.email, full_name: user.full_name, role: user.role };
-  }
-  return { id: "usr_demo_001", email: "demo@nms.ai", full_name: "陈元", role: "admin" };
-};
+/** 当前身份（严格模式下可能为 null，写操作请用 requireAuth/requireRole） */
+const authOf = (req) => resolveIdentity(req) || { id: "anonymous", email: "anonymous", full_name: "未登录", role: "guest" };
 
 /* ------------------------------ 路由 ------------------------------ */
 const server = http.createServer(async (req, res) => {
   const started = Date.now();
+  securityHeaders(res);
   cors(req, res);
 
   if (req.method === "OPTIONS") {
@@ -155,10 +165,13 @@ const server = http.createServer(async (req, res) => {
         service: "nms-metalife-api",
         version: "1.0.0",
         time: new Date().toISOString(),
+        uptime: Math.round(process.uptime()),
+        audit: auditStats(),
         boot: SERVER_BOOT,
         db: dbInfo(),
         channel: { pay: "POST /api/pay", refund: "POST /api/pay/refund/request", reconcile: "GET /api/admin/reconcile", qr: QR_META },
         refundRules: REFUND_RULES,
+        auth: AUTH_META,
         scheduler: schedulerStatus(),
       });
     }
@@ -172,11 +185,66 @@ const server = http.createServer(async (req, res) => {
     if (method === "POST" && url.pathname === "/api/auth/me") {
       return json(res, 200, authOf(req));
     }
+    if (method === "POST" && url.pathname === "/api/auth/otp") {
+      const body = await readBody(req);
+      return json(res, 200, sendOtp({ email: body.email }));
+    }
+
     if (method === "POST" && url.pathname === "/api/auth/login") {
       const body = await readBody(req);
+
+      /* 严格模式必须带验证码；宽松模式允许仅凭邮箱登录（本地自测） */
+      if (STRICT || body.code) {
+        return json(res, 200, loginWithOtp({ email: body.email, code: body.code }));
+      }
+
       const user = findUserByEmail(String(body.email || "")) || findUserByEmail("demo@nms.ai");
       if (!user) return json(res, 401, { error: "user_not_found" });
-      return json(res, 200, { token: user.token, user: { id: user.id, email: user.email, full_name: user.full_name, role: user.role } });
+      const issued = issueToken({
+        id: user.id,
+        email: user.email,
+        role: user.role || "user",
+        full_name: user.full_name || "",
+      });
+      return json(res, 200, {
+        token: issued.token,
+        expiresIn: issued.expiresIn,
+        user: { id: user.id, email: user.email, full_name: user.full_name, role: user.role },
+      });
+    }
+
+    if (method === "POST" && url.pathname === "/api/auth/logout") {
+      const raw = req.headers.authorization || "";
+      const token = raw.startsWith("Bearer ") ? raw.slice(7).trim() : null;
+      return json(res, 200, token ? revokeToken(token) : { ok: true });
+    }
+
+    if (method === "POST" && url.pathname === "/api/auth/session") {
+      const user = resolveIdentity(req);
+      return json(res, 200, { authenticated: !!user, user, auth: AUTH_META });
+    }
+
+    /* 管理接口：仅 admin / owner */
+    if (url.pathname.startsWith("/api/admin/")) {
+      requireRole(req, ["admin", "owner"]);
+    }
+
+    /* 支付与收款码：必须登录 */
+    if (url.pathname === "/api/pay" || url.pathname.startsWith("/api/pay/") || url.pathname.startsWith("/api/qr/")) {
+      requireAuth(req);
+    }
+
+    /* 实体写操作：必须登录（list/filter 虽用 POST 但属读操作，放行） */
+    const isEntityRead =
+      url.pathname.endsWith("/list") ||
+      url.pathname.endsWith("/filter") ||
+      method === "GET";
+    if (
+      url.pathname.startsWith("/api/entities/") &&
+      !isEntityRead &&
+      ["POST", "PATCH", "PUT", "DELETE"].includes(method)
+    ) {
+      requireAuth(req);
     }
 
     /* 实体集合 */
@@ -207,10 +275,12 @@ const server = http.createServer(async (req, res) => {
     if (method === "POST" && url.pathname === "/api/admin/seed") {
       const body = await readBody(req);
       const inserted = bulkSeed(body.entities || body);
+      audit({ actor: authOf(req).email, action: "admin.seed", target: "entities", payload: { inserted } });
       return json(res, 200, { inserted, counts: counts() });
     }
     if (method === "POST" && url.pathname === "/api/admin/reset") {
       const ok = resetAll();
+      audit({ actor: authOf(req).email, action: "admin.reset", target: "entities", payload: { seeded: ok } });
       return json(res, 200, { reset: true, seeded: ok, counts: counts() });
     }
 
@@ -263,6 +333,23 @@ const server = http.createServer(async (req, res) => {
       const requestId = decodeURIComponent(seg[3]);
       if (seg[4] === "approve") return json(res, 200, approveRefund({ ...body, requestId }));
       if (seg[4] === "reject") return json(res, 200, rejectRefund({ ...body, requestId }));
+    }
+
+    if (method === "POST" && url.pathname === "/api/admin/reconcile/compensate") {
+      const body = await readBody(req).catch(() => ({}));
+      const user = authOf(req);
+      return json(res, 200, compensate({ date: body.date, actor: user.email }));
+    }
+
+    if (method === "GET" && url.pathname === "/api/admin/audit") {
+      return json(res, 200, {
+        stats: auditStats(),
+        items: listAudit({
+          limit: Number(url.searchParams.get("limit") || 30),
+          action: url.searchParams.get("action") || undefined,
+          actor: url.searchParams.get("actor") || undefined,
+        }),
+      });
     }
 
     if (method === "GET" && url.pathname === "/api/admin/reconcile/runs") {
@@ -332,12 +419,42 @@ const server = http.createServer(async (req, res) => {
   } catch (e) {
     const status = e.status || 500;
     if (status >= 500) console.error("[api]", e);
-    return json(res, status, { error: e.message || "internal_error" });
+    return json(res, status, {
+      error: e.code || e.message || "internal_error",
+      detail: e.detail || undefined,
+      message: e.message,
+    });
   } finally {
     if (process.env.LOG !== "off") {
       console.log(`${method} ${url.pathname} ${res.statusCode} ${Date.now() - started}ms`);
     }
   }
+});
+
+/* --------------------------- 优雅关闭 --------------------------- */
+let closing = false;
+const shutdown = (signal) => {
+  if (closing) return;
+  closing = true;
+  console.log(`\n[shutdown] 收到 ${signal}，停止接收新请求…`);
+  server.close(() => {
+    try {
+      db.close();
+    } catch (e) {
+      /* 已关闭 */
+    }
+    console.log("[shutdown] 数据库已关闭，进程退出");
+    process.exit(0);
+  });
+  setTimeout(() => {
+    console.warn("[shutdown] 超时强制退出");
+    process.exit(1);
+  }, 8000).unref();
+};
+process.on("SIGINT", () => shutdown("SIGINT"));
+process.on("SIGTERM", () => shutdown("SIGTERM"));
+process.on("unhandledRejection", (err) => {
+  console.error("[unhandledRejection]", err);
 });
 
 server.listen(PORT, HOST, () => {

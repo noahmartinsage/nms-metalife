@@ -29,11 +29,19 @@ export function useSession() {
 
   useEffect(() => {
     load();
+
+    /* 登录 / 登出后由 Login 页广播，侧栏与余额立即刷新 */
+    const onSession = () => load();
+    window.addEventListener("nms:session", onSession);
+
     const unsubs = [
       base44.entities.UserBalance.subscribe(() => load()),
       base44.entities.WalletAccount.subscribe(() => load()),
     ];
-    return () => unsubs.forEach((u) => u());
+    return () => {
+      window.removeEventListener("nms:session", onSession);
+      unsubs.forEach((u) => u());
+    };
   }, [load]);
 
   /** 更新当前用户余额字段 */

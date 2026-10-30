@@ -180,6 +180,76 @@ NFT 池   +10  NMS（实物/门店各 50%）
 
 ---
 
+## v9：商用生产级加固（鉴权 / 双人复核 / 自动补偿 / 审计）
+
+### 1. 鉴权与 RBAC（此前是最大缺口）
+
+原实现 `authOf` 在无令牌时直接兜底成 demo 管理员——等于管理接口完全裸奔。现已重写：
+
+| 项 | 实现 |
+|---|---|
+| 令牌 | `nms1.<b64url(payload)>.<HMAC-SHA256 前32位>`，自带 `exp`（默认 12h），篡改即失效 |
+| 登录 | 邮箱 + 6 位验证码，5 分钟过期、**用后即焚**、同邮箱 60 秒发送限流 |
+| 登出 | 写入 `revoked_tokens` 吊销表，令牌立即作废 |
+| 角色 | `user` / `merchant` / `admin` / `owner`，最小权限 |
+| 守卫 | `/api/admin/*` → admin/owner；`/api/pay*`、`/api/qr/*`、实体写入 → 需登录；`list`/`filter`/`GET` 开放 |
+| 模式 | `NMS_AUTH_STRICT=1` 严格（生产默认）；未开时保留 demo 兜底便于本地自测 |
+
+**修掉的后门**：种子用户带明文 `nms-demo-token`，严格模式下曾可直接通过校验。现在严格模式只认签名令牌，明文令牌仅宽松模式兼容。
+
+```bash
+# 生产
+NMS_AUTH_STRICT=1 NMS_JWT_SECRET=<随机长串> NODE_ENV=production npm run server
+```
+
+前端新增 `/login` 页：发码 → 登录 → 显示角色与认证方式 → 退出登录。登录后广播 `nms:session` 事件，侧栏用户名与余额立即刷新。
+
+### 2. 大额退款双人复核（4-eyes）
+
+| 金额 | 风险 | 审批要求 |
+|---|---|---|
+| ≤ ¥500 | low | 系统自动通过并退款 |
+| ¥500–5,000 | medium | 1 人审批 |
+| > ¥5,000 | high | **2 个不同审批人**，且需 admin/owner |
+
+- 第一人签字后状态转 `pending_second`（`approvals=1/2`），**同一人重复签返回 409 `duplicate_approver`**
+- 第二人签字才真正执行退款；驳回不改支付单状态
+- 管理后台直接显示「双人复核 1/2 · 待第二人」
+
+### 3. 对账差异自动补偿
+
+`POST /api/admin/reconcile/compensate` 只处理**通道自身产生**的差异，不碰历史种子数据：
+
+1. 孤立通道单（`payments` 已结算但订单缺失）→ 用 `response_json` 重建 `PaymentOrder`
+2. 通道订单缺链上交易 → 用 `payments.tx_hash` 补记 `Transaction`
+
+其余历史差异仅报告（`legacyOrphans`），不自动改。补偿动作全部写入审计。
+
+### 4. 审计日志
+
+`server/audit.mjs` 记录：`pay.settled` / `refund.executed` / `refund.approve.partial` / `refund.approved` / `reconcile.compensate` / `admin.seed` / `admin.reset`。
+查询：`GET /api/admin/audit?limit=30&action=&actor=`，`/api/health` 返回 `audit.total`。
+
+### 5. 其他加固
+
+- 安全响应头：`x-content-type-options` / `x-frame-options` / `referrer-policy` / `permissions-policy`
+- 优雅关闭：`SIGINT`/`SIGTERM` 停止收新请求 → 关库 → 退出，8 秒超时强退
+- 错误响应统一 `{ error, detail, message }`，前端可区分 401/403/402
+- `unhandledRejection` 统一记录，不静默吞掉
+
+### 6. 验证
+
+```bash
+node scripts/test-auth.mjs         # 26 项：令牌签名/篡改/吊销/OTP/限流/RBAC/后门
+node scripts/test-production.mjs   # 19 项：安全头/4-eyes/补偿/审计
+node scripts/test-pay.mjs          # 25 项：支付通道回归
+node scripts/test-refund.mjs       # 18 项：退款审批回归
+```
+
+合计 **88 项断言全通过**；SSR 35 路由渲染 OK；严格模式 UI 全流程（发码→登录→管理后台解锁→侧栏同步）实测通过。
+
+---
+
 ## v8：幂等键下沉 · 退款审批流 · 每日对账定时任务
 
 ### 幂等键下沉到前端

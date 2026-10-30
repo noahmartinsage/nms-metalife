@@ -10,18 +10,19 @@ const TOKEN_KEY = "nms_api_token";
 
 const getToken = () => {
   try {
-    return localStorage.getItem(TOKEN_KEY) || "nms-demo-token";
+    return localStorage.getItem(TOKEN_KEY) || "";
   } catch (e) {
-    return "nms-demo-token";
+    return "";
   }
 };
 
 async function request(path, { method = "GET", body } = {}) {
+  const token = getToken();
   const res = await fetch(`${BASE}${path}`, {
     method,
     headers: {
       "content-type": "application/json",
-      authorization: `Bearer ${getToken()}`,
+      ...(token ? { authorization: `Bearer ${token}` } : {}),
     },
     body: body === undefined ? undefined : JSON.stringify(body),
   });

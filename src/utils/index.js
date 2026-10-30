@@ -6,6 +6,7 @@ export const PAGE_ROUTES = {
   Home: "/",
   Champions: "/Champions",
   QuantumChain: "/quantum",
+  Login: "/login",
   Register: "/register",
   Invite: "/invite",
   Wallet: "/wallet",

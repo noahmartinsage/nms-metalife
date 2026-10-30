@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Cloud, Database, HardDrive, RefreshCw, Server, Upload } from "lucide-react";
+import { Cloud, Database, HardDrive, RefreshCw, Server, Upload, Wrench } from "lucide-react";
 import { SectionCard } from "@/components/common/SectionCard";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -48,11 +48,11 @@ export default function BackendPanel() {
     if (!isServer) return;
     try {
       const [refundsRes, runsRes, alertsRes] = await Promise.all([
-        payClient.listRefunds("pending"),
+        payClient.listRefunds(),
         payClient.reconcileRuns(5),
         payClient.alerts(true),
       ]);
-      setPendingRefunds(refundsRes.items || []);
+      setPendingRefunds((refundsRes.items || []).filter((r) => ["pending", "pending_second"].includes(r.status)));
       if (refundsRes.rules) setRefundRules(refundsRes.rules);
       setRuns(runsRes.runs || []);
       setScheduler(runsRes.scheduler || {});
@@ -80,6 +80,18 @@ export default function BackendPanel() {
       probe();
     } catch (e) {
       toast.error(`操作失败：${e.message}`);
+    }
+  };
+
+  const runCompensate = async () => {
+    try {
+      const res = await payClient.compensate();
+      if (res.compensated > 0) toast.success(`已自动补偿 ${res.compensated} 项差异`);
+      else toast.message("未发现需要补偿的通道差异");
+      setRec(res.after || null);
+      await loadChannel();
+    } catch (e) {
+      toast.error(`补偿失败：${e.message}`);
     }
   };
 
@@ -271,6 +283,12 @@ export default function BackendPanel() {
                     <p className="mt-0.5 truncate text-[8px] text-muted-foreground">
                       {r.merchant_name} · {r.risk_level === "high" ? "高风险" : "需确认"} · {r.reason || "未填原因"}
                     </p>
+                    {(r.required_approvals || 1) > 1 && (
+                      <p className="mt-0.5 text-[8px] text-amber-300">
+                        双人复核 {r.approvals || 0}/{r.required_approvals}
+                        {r.status === "pending_second" ? " · 待第二人" : ""}
+                      </p>
+                    )}
                     <div className="mt-1 flex gap-1">
                       <Button size="sm" variant="success" className="h-6 flex-1 text-[9px]" onClick={() => decideRefund(r.id, "approve")}>
                         通过
@@ -313,6 +331,9 @@ export default function BackendPanel() {
                 ))
               )}
             </div>
+            <Button size="sm" variant="outline" className="mt-1.5 w-full" onClick={runCompensate}>
+              <Wrench className="h-3 w-3" /> 自动补偿差异
+            </Button>
           </div>
         </>
       )}

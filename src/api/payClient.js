@@ -58,6 +58,12 @@ export const payClient = {
   approveRefund: (requestId, note) => call(`/admin/refunds/${encodeURIComponent(requestId)}/approve`, { method: "POST", body: { note, approver: "admin" } }),
   rejectRefund: (requestId, note) => call(`/admin/refunds/${encodeURIComponent(requestId)}/reject`, { method: "POST", body: { note, approver: "admin" } }),
 
+  /** 对账差异自动补偿（重建订单 / 补记交易） */
+  compensate: (date) => call("/admin/reconcile/compensate", { method: "POST", body: { date } }),
+
+  /** 审计日志 */
+  audit: (limit = 30) => call(`/admin/audit?limit=${limit}`),
+
   /** 对账历史 + 定时任务状态 */
   reconcileRuns: (limit = 10) => call(`/admin/reconcile/runs?limit=${limit}`),
   runReconcileNow: () => call("/admin/reconcile/run", { method: "POST", body: {} }),

@@ -8,6 +8,7 @@
  */
 import crypto from "node:crypto";
 import db from "./db.mjs";
+import { audit } from "./audit.mjs";
 
 /* 与 src/lib/engine.js SPLIT_RULES 保持一致 */
 export const SPLIT = {
@@ -371,6 +372,13 @@ export function pay({
     });
 
     db.exec("COMMIT");
+    audit({
+      actor: userEmail,
+      action: "pay.settled",
+      target: "payments",
+      targetId: paymentId,
+      payload: { orderNo, amount: amt, method, merchantId: merchant.id, txHash },
+    });
     return { ...response, chainHash, idempotent: false };
   } catch (e) {
     db.exec("ROLLBACK");
@@ -439,6 +447,13 @@ export function refund({ paymentId, idempotencyKey = `refund_${paymentId}` } = {
     const chainHash = appendChain("payment.refunded", paymentId, { amount: payment.amount, orderNo: payment.order_no });
 
     db.exec("COMMIT");
+    audit({
+      actor: "system",
+      action: "refund.executed",
+      target: "payments",
+      targetId: paymentId,
+      payload: { amount: payment.amount, orderNo: payment.order_no, chainHash },
+    });
     return { ok: true, refunded: true, paymentId, chainHash, amount: payment.amount, idempotent: false };
   } catch (e) {
     db.exec("ROLLBACK");
@@ -563,10 +578,11 @@ export function reconcile({ date } = {}) {
 /* 退款审批流                                                          */
 /* ================================================================== */
 
-/** 风控阈值：≤500 自动通过；500-5000 商家/管理员确认；>5000 高风险需管理员审批 */
+/** 风控阈值：≤500 自动通过；500-5000 单人确认；>5000 需双人复核（4-eyes） */
 export const REFUND_RULES = {
   autoApproveLimit: 500,
   merchantLimit: 5000,
+  highRiskApprovals: 2,
 };
 
 db.exec(`
@@ -624,6 +640,14 @@ const riskOf = (amount) => {
   return "high";
 };
 
+/* 增量迁移：双人复核需要的列 */
+(() => {
+  const cols = new Set(db.prepare("PRAGMA table_info(refund_requests)").all().map((c) => c.name));
+  if (!cols.has("approvals")) db.exec("ALTER TABLE refund_requests ADD COLUMN approvals INTEGER DEFAULT 0");
+  if (!cols.has("approvers")) db.exec("ALTER TABLE refund_requests ADD COLUMN approvers TEXT");
+  if (!cols.has("required_approvals")) db.exec("ALTER TABLE refund_requests ADD COLUMN required_approvals INTEGER DEFAULT 1");
+})();
+
 export function alert({ level = "warn", source = "system", message, payload = {} } = {}) {
   const id = newId("alert");
   db.prepare(
@@ -676,8 +700,9 @@ export function requestRefund({ paymentId, reason = "", requester = "demo@nms.ai
     db.prepare(
       `INSERT INTO refund_requests (
         id, payment_id, order_no, user_email, merchant_id, merchant_name, amount, reason,
-        risk_level, status, requester, approver, note, created_date, decided_date
-      ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`
+        risk_level, status, requester, approver, note, created_date, decided_date,
+        approvals, approvers, required_approvals
+      ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`
     ).run(
       id,
       paymentId,
@@ -693,16 +718,21 @@ export function requestRefund({ paymentId, reason = "", requester = "demo@nms.ai
       "system",
       `金额 ≤ ${REFUND_RULES.autoApproveLimit}，风控自动通过`,
       nowISO(),
-      nowISO()
+      nowISO(),
+      1,
+      JSON.stringify(["system"]),
+      1
     );
     return { ok: true, autoApproved: true, request: db.prepare("SELECT * FROM refund_requests WHERE id = ?").get(id), result };
   }
 
+  const required = risk === "high" ? REFUND_RULES.highRiskApprovals : 1;
   db.prepare(
     `INSERT INTO refund_requests (
       id, payment_id, order_no, user_email, merchant_id, merchant_name, amount, reason,
-      risk_level, status, requester, approver, note, created_date, decided_date
-    ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`
+      risk_level, status, requester, approver, note, created_date, decided_date,
+      approvals, approvers, required_approvals
+    ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`
   ).run(
     id,
     paymentId,
@@ -716,9 +746,12 @@ export function requestRefund({ paymentId, reason = "", requester = "demo@nms.ai
     "pending",
     requester,
     null,
-    risk === "high" ? "高风险：需管理员审批" : "需商家或管理员确认",
+    risk === "high" ? `高风险：需 ${required} 人复核` : "需商家或管理员确认",
     nowISO(),
-    null
+    null,
+    0,
+    JSON.stringify([]),
+    required
   );
 
   return { ok: true, pending: true, request: db.prepare("SELECT * FROM refund_requests WHERE id = ?").get(id) };
@@ -738,7 +771,7 @@ export function approveRefund({ requestId, approver = "admin", note = "" } = {})
     err.status = 404;
     throw err;
   }
-  if (req.status !== "pending") {
+  if (["approved", "rejected", "auto_approved"].includes(req.status)) {
     return { ok: true, idempotent: true, status: req.status, request: req };
   }
   if (req.risk_level === "high" && !["admin", "owner"].includes(String(approver).toLowerCase())) {
@@ -747,17 +780,77 @@ export function approveRefund({ requestId, approver = "admin", note = "" } = {})
     throw err;
   }
 
+  /* 4-eyes：大额需两个不同审批人，且不能重复签 */
+  const approvers = req.approvers ? JSON.parse(req.approvers) : [];
+  if (approvers.includes(approver)) {
+    const err = new Error("duplicate_approver");
+    err.status = 409;
+    err.detail = { approvers, message: "该审批人已签过，需另一人复核" };
+    throw err;
+  }
+  approvers.push(approver);
+
+  const required = Math.max(
+    req.required_approvals || 1,
+    req.risk_level === "high" ? REFUND_RULES.highRiskApprovals : 1
+  );
+
+  if (approvers.length < required) {
+    db.prepare(
+      "UPDATE refund_requests SET status = ?, approvals = ?, approvers = ?, note = ? WHERE id = ?"
+    ).run(
+      "pending_second",
+      approvers.length,
+      JSON.stringify(approvers),
+      note || `已由 ${approver} 复核，待第 ${approvers.length + 1} 人确认`,
+      requestId
+    );
+    audit({
+      actor: approver,
+      action: "refund.approve.partial",
+      target: "refund_requests",
+      targetId: requestId,
+      payload: { approvals: approvers.length, required, amount: req.amount },
+    });
+    return {
+      ok: true,
+      partial: true,
+      approvals: approvers.length,
+      required,
+      request: db.prepare("SELECT * FROM refund_requests WHERE id = ?").get(requestId),
+    };
+  }
+
   const result = refund({ paymentId: req.payment_id, idempotencyKey: `refund_approved_${req.payment_id}` });
 
-  db.prepare("UPDATE refund_requests SET status = ?, approver = ?, note = ?, decided_date = ? WHERE id = ?").run(
+  db.prepare(
+    "UPDATE refund_requests SET status = ?, approver = ?, approvals = ?, approvers = ?, note = ?, decided_date = ? WHERE id = ?"
+  ).run(
     "approved",
     approver,
+    approvers.length,
+    JSON.stringify(approvers),
     note || "审批通过",
     nowISO(),
     requestId
   );
 
-  return { ok: true, approved: true, request: db.prepare("SELECT * FROM refund_requests WHERE id = ?").get(requestId), result };
+  audit({
+    actor: approver,
+    action: "refund.approved",
+    target: "refund_requests",
+    targetId: requestId,
+    payload: { amount: req.amount, approvers, paymentId: req.payment_id },
+  });
+
+  return {
+    ok: true,
+    approved: true,
+    approvals: approvers.length,
+    required,
+    request: db.prepare("SELECT * FROM refund_requests WHERE id = ?").get(requestId),
+    result,
+  };
 }
 
 export function rejectRefund({ requestId, approver = "admin", note = "" } = {}) {
@@ -824,4 +917,121 @@ export function runReconcile({ date, trigger = "manual" } = {}) {
 
 export function listReconcileRuns({ limit = 10 } = {}) {
   return db.prepare("SELECT * FROM reconcile_runs ORDER BY created_date DESC LIMIT ?").all(limit);
+}
+
+/* ================================================================== */
+/* 对账差异自动补偿                                                    */
+/* ================================================================== */
+
+/**
+ * 只补偿「通道产生」的差异，不碰历史种子数据：
+ *  1. 孤立通道单（payments 已结算但订单缺失）→ 用 response_json 重建订单
+ *  2. 通道订单缺链上交易 → 用 payments.tx_hash 补记交易
+ * 其余（历史种子订单无交易）仅报告，不自动处理。
+ */
+export function compensate({ date, actor = "system" } = {}) {
+  const day = date || new Date().toISOString().slice(0, 10);
+  const like = `${day}%`;
+  const actions = [];
+
+  const orphanPayments = db
+    .prepare(
+      `SELECT p.* FROM payments p
+       WHERE p.status='settled' AND p.created_date LIKE ?
+         AND NOT EXISTS (SELECT 1 FROM "PaymentOrder" o WHERE o.id = p.order_id)`
+    )
+    .all(like);
+
+  for (const p of orphanPayments) {
+    let resp = {};
+    try {
+      resp = JSON.parse(p.response_json || "{}");
+    } catch (e) {
+      resp = {};
+    }
+    const s = resp.split || splitPayment(p.amount, p.tip_ratio);
+    const now = nowISO();
+    db.prepare(
+      `INSERT INTO "PaymentOrder" (
+        id, order_no, merchant_id, merchant_email, merchant_name, user_email, amount, payment_method,
+        tip_ratio, merchant_consumed, user_reward, merchant_return, vip_reward, level_diff_reward,
+        contributor_reward, physical_nft_pool_add, nft_minted, burned_amount, status, quantum_signature,
+        created_date, updated_date
+      ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`
+    ).run(
+      p.order_id || newId("ord"),
+      p.order_no,
+      p.merchant_id,
+      "",
+      p.merchant_name,
+      p.user_email,
+      p.amount,
+      p.method,
+      p.tip_ratio,
+      s.merchantConsumed ?? 0,
+      s.userReward ?? 0,
+      s.merchantReturn ?? 0,
+      s.vipReward ?? 0,
+      s.levelDiffReward ?? 0,
+      s.contributorReward ?? 0,
+      s.physicalPoolAdd ?? 0,
+      1,
+      round2(p.amount * 0.35),
+      "completed",
+      `COMPENSATED-${crypto.randomBytes(6).toString("hex").toUpperCase()}`,
+      p.created_date || now,
+      now
+    );
+    actions.push({ type: "rebuild_order", paymentId: p.id, orderNo: p.order_no });
+  }
+
+  const missingTx = db
+    .prepare(
+      `SELECT p.* FROM payments p
+       JOIN "PaymentOrder" o ON o.id = p.order_id
+       WHERE p.status='settled' AND p.created_date LIKE ?
+         AND NOT EXISTS (SELECT 1 FROM "Transaction" t WHERE t.tx_hash = p.tx_hash)`
+    )
+    .all(like);
+
+  for (const p of missingTx) {
+    db.prepare(
+      `INSERT INTO "Transaction" (
+        id, tx_hash, block_number, from_address, to_address, amount, token_type, status, gas_fee,
+        quantum_signature, signature_time_ms, created_date, updated_date
+      ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`
+    ).run(
+      newId("tx"),
+      p.tx_hash,
+      18492000 + Math.floor(Math.random() * 90000),
+      p.user_email,
+      p.merchant_id,
+      p.amount,
+      p.method === "acs" ? "ACS" : "NMS",
+      "confirmed",
+      0,
+      `COMPENSATED-${crypto.randomBytes(8).toString("hex").toUpperCase()}`,
+      Date.now(),
+      p.created_date || nowISO(),
+      nowISO()
+    );
+    actions.push({ type: "rebuild_tx", paymentId: p.id, txHash: p.tx_hash });
+  }
+
+  if (actions.length) {
+    audit({
+      actor,
+      action: "reconcile.compensate",
+      target: "reconcile",
+      targetId: day,
+      payload: { actions, count: actions.length },
+    });
+  }
+
+  return {
+    date: day,
+    compensated: actions.length,
+    actions,
+    after: reconcile({ date: day }),
+  };
 }
