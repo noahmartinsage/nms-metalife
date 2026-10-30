@@ -22,7 +22,7 @@ import { shortHash } from "@/lib/format";
 
 const FEATURES = [
   { key: "did", name: "DID 身份", icon: Fingerprint, desc: "链上唯一身份，跨应用互通", tag: "已绑定" },
-  { key: "chat", name: "加密聊天", icon: Lock, desc: "Kyber-768 端对端加密", tag: "E2E" },
+  { key: "chat", name: "加密聊天", icon: Lock, desc: "ML-DSA-65 端对端加密", tag: "E2E" },
   { key: "avatar", name: "数字分身", icon: UserCircle2, desc: "AI 数字人代理社交", tag: "Beta" },
   { key: "ai", name: "AI 助手", icon: Bot, desc: "自动回复与话题推荐", tag: "在线" },
   { key: "feed", name: "社区动态", icon: Sparkles, desc: "消费即分享，链上存证", tag: "热门" },
@@ -103,7 +103,7 @@ export default function P2PSocialHub({ referralCode = "NMSDEMO" }) {
               )}
               {open.key === "chat" && (
                 <ul className="space-y-1">
-                  <li>· 加密算法：Kyber-768 KEM + AES-256-GCM</li>
+                  <li>· 加密算法：ML-DSA-65 KEM + AES-256-GCM</li>
                   <li>· 消息仅存于对等节点 Hypercore 账本</li>
                   <li>· 服务端无明文，无法被平台读取</li>
                 </ul>

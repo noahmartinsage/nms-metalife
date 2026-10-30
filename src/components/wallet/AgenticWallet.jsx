@@ -29,7 +29,7 @@ export default function AgenticWallet() {
       title="Agentic Wallet"
       desc="Web4.0 · AI + ZK 框架 · Agent 一等公民"
       icon={Bot}
-      actions={<Badge variant="purple">Kyber-768 KEM</Badge>}
+      actions={<Badge variant="purple">ML-DSA-65 KEM</Badge>}
     >
       <div className="rounded-xl border border-cyan-400/20 bg-gradient-to-br from-cyan-500/10 to-violet-500/5 p-3">
         <div className="flex items-center gap-2">

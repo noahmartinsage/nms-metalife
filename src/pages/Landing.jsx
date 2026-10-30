@@ -24,7 +24,7 @@ const FEATURES = [
   { t: "9×9×9 释放", d: "三维度加速，999 天压缩至 31 天，最高 32.2x", icon: Zap },
   { t: "AI 量化风控", d: "Minara-AI 实时监控，波动超阈值自动熔断", icon: Bot },
   { t: "RWA 确权", d: "法律公证 + AI 合规 + 3/5 多签 + DOI 存证", icon: Boxes },
-  { t: "P2P 加密社交", d: "Kyber-768 端对端加密，DID 身份跨应用互通", icon: Users },
+  { t: "P2P 加密社交", d: "ML-DSA-65 端对端加密，DID 身份跨应用互通", icon: Users },
   { t: "DAO 治理", d: "省市区街道四级 DAO，治理资金反哺生态", icon: Gavel },
 ];
 

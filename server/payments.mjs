@@ -9,6 +9,7 @@
 import crypto from "node:crypto";
 import db from "./db.mjs";
 import { audit } from "./audit.mjs";
+import kms from "./kms.mjs";
 
 /* 与 src/lib/engine.js SPLIT_RULES 保持一致 */
 export const SPLIT = {
@@ -102,7 +103,7 @@ export function verifyChain(limit = 500) {
 }
 
 /* ---------------------------- 支付主流程 ---------------------------- */
-export function pay({
+export async function pay({
   userEmail = "demo@nms.ai",
   merchantCode,
   merchantId,
@@ -178,7 +179,38 @@ export function pay({
     throw err;
   }
 
-  /* 5. 单事务：锁定 → 记账 → 结算 */
+  /* 5. 后量子签名（事务外完成，避免长时间持有写锁；两笔签名并行） */
+  const blockNumber = 18492000 + Math.floor(Math.random() * 90000);
+  const token = method === "acs" ? "ACS" : "NMS";
+
+  const [txSig, orderSig] = await Promise.all([
+    kms.sign(
+      /* 只签不可变字段：status 会因退款变更，不能进签名 */
+      kms.canonical({
+        tx_hash: txHash,
+        block_number: blockNumber,
+        from: userEmail,
+        to: merchant.id,
+        amount: amt,
+        token,
+      }),
+      { context: "payment.tx", actor: userEmail }
+    ),
+    kms.sign(
+      kms.canonical({
+        order_id: orderId,
+        order_no: orderNo,
+        merchant: merchant.id,
+        user: userEmail,
+        amount: amt,
+        method,
+        split,
+      }),
+      { context: "payment.order", actor: userEmail }
+    ),
+  ]);
+
+  /* 6. 单事务：锁定 → 记账 → 结算 */
   db.exec("BEGIN IMMEDIATE");
   try {
     /* 5.1 锁定：可用 → 冻结 */
@@ -224,29 +256,34 @@ export function pay({
       1,
       round2(amt * 0.35),
       "completed",
-      `KYBER768-${crypto.randomBytes(12).toString("hex").toUpperCase()}`,
+      orderSig.signature,
       ts,
       ts
     );
 
-    /* 5.3 链上交易 */
+    /* 5.3 链上交易（后量子签名 + 密钥溯源） */
     db.prepare(
       `INSERT INTO "Transaction" (
         id, tx_hash, block_number, from_address, to_address, amount, token_type, status, gas_fee,
-        quantum_signature, signature_time_ms, created_date, updated_date
-      ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`
+        quantum_signature, signature_time_ms, signature_algorithm, signing_key_id,
+        signing_key_fingerprint, payload_hash, created_date, updated_date
+      ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`
     ).run(
       newId("tx"),
       txHash,
-      18492000 + Math.floor(Math.random() * 90000),
+      blockNumber,
       userEmail,
       merchant.id,
       amt,
-      method === "acs" ? "ACS" : "NMS",
+      token,
       "confirmed",
       0,
-      `KYBER768-${crypto.randomBytes(12).toString("hex").toUpperCase()}`,
+      txSig.signature,
       Date.now(),
+      txSig.algorithm,
+      txSig.keyId,
+      txSig.fingerprint,
+      txSig.payloadHash,
       ts,
       ts
     );
@@ -387,7 +424,7 @@ export function pay({
 }
 
 /* ------------------------------ 退款 ------------------------------ */
-export function refund({ paymentId, idempotencyKey = `refund_${paymentId}` } = {}) {
+export async function refund({ paymentId, idempotencyKey = `refund_${paymentId}` } = {}) {
   const payment = db.prepare("SELECT * FROM payments WHERE id = ?").get(paymentId);
   if (!payment) {
     const err = new Error("payment_not_found");
@@ -668,7 +705,7 @@ export function listAlerts({ limit = 20, onlyUnacked = false } = {}) {
 }
 
 /** 发起退款申请（小额自动通过，大额进入审批） */
-export function requestRefund({ paymentId, reason = "", requester = "demo@nms.ai" } = {}) {
+export async function requestRefund({ paymentId, reason = "", requester = "demo@nms.ai" } = {}) {
   const payment = db.prepare("SELECT * FROM payments WHERE id = ?").get(paymentId);
   if (!payment) {
     const err = new Error("payment_not_found");
@@ -696,7 +733,7 @@ export function requestRefund({ paymentId, reason = "", requester = "demo@nms.ai
 
   /* 小额自动通过 */
   if (risk === "low") {
-    const result = refund({ paymentId, idempotencyKey: `refund_auto_${paymentId}` });
+    const result = await refund({ paymentId, idempotencyKey: `refund_auto_${paymentId}` });
     db.prepare(
       `INSERT INTO refund_requests (
         id, payment_id, order_no, user_email, merchant_id, merchant_name, amount, reason,
@@ -764,7 +801,7 @@ export function listRefunds({ status, limit = 20 } = {}) {
   return rows;
 }
 
-export function approveRefund({ requestId, approver = "admin", note = "" } = {}) {
+export async function approveRefund({ requestId, approver = "admin", note = "" } = {}) {
   const req = db.prepare("SELECT * FROM refund_requests WHERE id = ?").get(requestId);
   if (!req) {
     const err = new Error("request_not_found");
@@ -821,7 +858,7 @@ export function approveRefund({ requestId, approver = "admin", note = "" } = {})
     };
   }
 
-  const result = refund({ paymentId: req.payment_id, idempotencyKey: `refund_approved_${req.payment_id}` });
+  const result = await refund({ paymentId: req.payment_id, idempotencyKey: `refund_approved_${req.payment_id}` });
 
   db.prepare(
     "UPDATE refund_requests SET status = ?, approver = ?, approvals = ?, approvers = ?, note = ?, decided_date = ? WHERE id = ?"
@@ -929,7 +966,7 @@ export function listReconcileRuns({ limit = 10 } = {}) {
  *  2. 通道订单缺链上交易 → 用 payments.tx_hash 补记交易
  * 其余（历史种子订单无交易）仅报告，不自动处理。
  */
-export function compensate({ date, actor = "system" } = {}) {
+export async function compensate({ date, actor = "system" } = {}) {
   const day = date || new Date().toISOString().slice(0, 10);
   const like = `${day}%`;
   const actions = [];
@@ -995,23 +1032,42 @@ export function compensate({ date, actor = "system" } = {}) {
     .all(like);
 
   for (const p of missingTx) {
+    const blockNumber = 18492000 + Math.floor(Math.random() * 90000);
+    const token = p.method === "acs" ? "ACS" : "NMS";
+    /* 补偿写入的交易同样要真实签名，否则链校验会把它当伪造 */
+    const sig = await kms.sign(
+      kms.canonical({
+        tx_hash: p.tx_hash,
+        block_number: blockNumber,
+        from: p.user_email,
+        to: p.merchant_id,
+        amount: p.amount,
+        token,
+      }),
+      { context: "reconcile.compensate", actor }
+    );
     db.prepare(
       `INSERT INTO "Transaction" (
         id, tx_hash, block_number, from_address, to_address, amount, token_type, status, gas_fee,
-        quantum_signature, signature_time_ms, created_date, updated_date
-      ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`
+        quantum_signature, signature_time_ms, signature_algorithm, signing_key_id,
+        signing_key_fingerprint, payload_hash, created_date, updated_date
+      ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`
     ).run(
       newId("tx"),
       p.tx_hash,
-      18492000 + Math.floor(Math.random() * 90000),
+      blockNumber,
       p.user_email,
       p.merchant_id,
       p.amount,
-      p.method === "acs" ? "ACS" : "NMS",
+      token,
       "confirmed",
       0,
-      `COMPENSATED-${crypto.randomBytes(8).toString("hex").toUpperCase()}`,
+      sig.signature,
       Date.now(),
+      sig.algorithm,
+      sig.keyId,
+      sig.fingerprint,
+      sig.payloadHash,
       p.created_date || nowISO(),
       nowISO()
     );

@@ -41,7 +41,7 @@ export const LAYERS = [
     icon: Network,
     color: "#fbbf24",
     duty: "节点发现、消息广播、端对端加密",
-    tech: ["Hyperswarm DHT", "Hypercore append-only log", "Kyber-768 KEM", "Dilithium 签名"],
+    tech: ["Hyperswarm DHT", "Hypercore append-only log", "ML-KEM-768", "ML-DSA-65 签名"],
     protocols: ["Holepunch 协议栈", "P2P 端对端通信", "抗量子密钥封装", "内容哈希上链存证"],
   },
 ];

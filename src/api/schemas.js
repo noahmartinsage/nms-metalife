@@ -202,6 +202,10 @@ export const Transaction = {
     gas_fee: { type: "number", default: 0 },
     quantum_signature: { type: "string" },
     signature_time_ms: { type: "number" },
+    signature_algorithm: { type: "string" },
+    signing_key_id: { type: "string" },
+    signing_key_fingerprint: { type: "string" },
+    payload_hash: { type: "string" },
   },
   required: ["tx_hash", "from_address", "to_address", "amount"],
 };

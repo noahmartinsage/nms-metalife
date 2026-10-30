@@ -17,7 +17,7 @@ const FEATURES = [
   { t: "0 Gas", d: "手续费由平台补贴池承担", icon: Zap },
   { t: "多币种", d: "NMS / ACS / 微信 / 支付宝混合", icon: CreditCard },
   { t: "商家聚合码", d: "一码收款，自动分账到分红池", icon: QrCode },
-  { t: "量子签名", d: "每笔交易 Kyber-768 存证", icon: ShieldCheck },
+  { t: "量子签名", d: "每笔交易 ML-DSA-65 存证", icon: ShieldCheck },
 ];
 
 export default function MetaPay() {

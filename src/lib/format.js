@@ -58,7 +58,7 @@ export const mockHash = (prefix = "0x", len = 40) => {
 };
 
 export const mockQuantumSignature = () =>
-  `KYBER768-${mockHash("", 16).toUpperCase()}-${Date.now().toString(36).toUpperCase()}`;
+  `DEMO-UNSIGNED-${mockHash("", 16).toUpperCase()}-${Date.now().toString(36).toUpperCase()}`;
 
 /** 金融输入防负数（规范 5.3） */
 export const sanitizeAmount = (raw) => {

@@ -66,7 +66,7 @@ export default function QuantumMiningPool() {
       title="量子矿池 · 算力调度"
       desc={`全网算力 ${totalHash.toFixed(1)} PH/s · ${fmtNum(5052, 0)} 矿工`}
       icon={Pickaxe}
-      actions={<Badge variant="success">Kyber-768</Badge>}
+      actions={<Badge variant="success">ML-DSA-65</Badge>}
     >
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
         {POOLS.map((p) => (

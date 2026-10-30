@@ -283,7 +283,7 @@ const transactions = Array.from({ length: 26 }, (_, i) => ({
   token_type: txTypes[i % txTypes.length],
   status: i === 4 ? "pending" : i === 11 ? "failed" : "confirmed",
   gas_fee: 0,
-  quantum_signature: `KYBER768-${mockHash("", 12).toUpperCase()}`,
+  quantum_signature: `DEMO-UNSIGNED-${mockHash("", 12).toUpperCase()}`,
   signature_time_ms: Date.now() - i * 1800000,
   created_date: daysAgo(i % 12, i * 2),
 }));

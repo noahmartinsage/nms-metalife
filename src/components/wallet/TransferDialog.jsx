@@ -69,7 +69,7 @@ export default function TransferDialog({ open, onOpenChange, accounts = [], onDo
           <DialogTitle className="flex items-center gap-2">
             <Send className="h-4 w-4 text-cyan-300" /> 转账
           </DialogTitle>
-          <DialogDescription>0 Gas · Kyber-768 量子签名 · 实时风控校验</DialogDescription>
+          <DialogDescription>0 Gas · ML-DSA-65 量子签名 · 实时风控校验</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-3">
@@ -145,7 +145,7 @@ export default function TransferDialog({ open, onOpenChange, accounts = [], onDo
             <div className="flex justify-between">
               <span className="text-muted-foreground">签名算法</span>
               <span className="flex items-center gap-1">
-                <ShieldCheck className="h-3 w-3 text-cyan-300" /> Kyber-768 + Dilithium
+                <ShieldCheck className="h-3 w-3 text-cyan-300" /> ML-DSA-65 + Dilithium
               </span>
             </div>
           </div>

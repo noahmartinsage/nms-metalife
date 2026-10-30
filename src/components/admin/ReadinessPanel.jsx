@@ -10,6 +10,7 @@ import { ENTITY_ORDER } from "@/api/schemas";
 import { calcReleaseDays } from "@/lib/promotionData";
 import { sanitizeAmount } from "@/lib/format";
 import { P2P_CONFIG } from "@/lib/p2p";
+import kmsClient from "@/api/kmsClient";
 import { cn } from "@/lib/utils";
 
 /**
@@ -107,6 +108,41 @@ export default function ReadinessPanel() {
     add("健壮性", "离线提示", "pass", "OfflineBanner 监听 online/offline");
     add("健壮性", "深色主题", document.documentElement.classList.contains("dark") ? "pass" : "warn", "CSS 变量主题");
     add("健壮性", "代码分包", "pass", "react / charts / markdown / motion 独立 chunk");
+
+    /* 8. KMS / HSM 后量子签名 */
+    try {
+      const h = await kmsClient.health();
+      add("KMS", "签名后端", h.provider ? "pass" : "fail", `${h.provider} · ${h.openssl || "—"}`);
+      add(
+        "KMS",
+        "后量子算法",
+        h.pqcAvailable ? "pass" : "warn",
+        h.pqcAvailable ? h.pqcAlgorithms.join(" / ") : "运行时无 ML-DSA，已降级 Ed25519"
+      );
+      add("KMS", "活动密钥", h.activeKeys > 0 ? "pass" : "fail", `${h.activeKeys} 个 active 密钥`);
+      add(
+        "KMS",
+        "主密钥托管",
+        h.keystore === "env" ? "pass" : "warn",
+        h.keystore === "env" ? "环境变量 NMS_KMS_MASTER_KEY" : "本地文件（生产应改用环境变量/外部 KMS）"
+      );
+      add("KMS", "签名延迟", (h.stats?.avgSignMs ?? 999) < 500 ? "pass" : "warn", `平均 ${h.stats?.avgSignMs ?? 0}ms`);
+      add("KMS", "签名审计", (h.stats?.total ?? 0) > 0 ? "pass" : "warn", `${h.stats?.total ?? 0} 条记录`);
+
+      const chain = await kmsClient.chainVerify(30);
+      add(
+        "KMS",
+        "链上逐笔验签",
+        chain.invalid === 0 ? "pass" : "fail",
+        `${chain.valid}/${chain.checked} 通过，历史无签名 ${chain.legacyUnsigned} 笔`
+      );
+      add("KMS", "账本哈希链", chain.chain?.ok ? "pass" : "fail", `长度 ${chain.chain?.length ?? 0}`);
+
+      const cp = await kmsClient.checkpoints(1);
+      add("KMS", "检查点签名", cp.latest ? "pass" : "warn", cp.latest ? `高度 ${cp.latest.height}` : "尚未生成检查点");
+    } catch (e) {
+      add("KMS", "KMS 服务", "fail", `不可用：${e.message}`);
+    }
 
     setResults(list);
     const fails = list.filter((r) => r.status === "fail").length;

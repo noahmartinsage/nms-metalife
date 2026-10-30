@@ -14,7 +14,7 @@ export function QuantumRiskDashboard() {
   const dash = (score / 100) * circumference;
 
   return (
-    <SectionCard title="量子风险仪表盘" desc="Kyber-768 KEM · Dilithium 签名" icon={Cpu}>
+    <SectionCard title="量子风险仪表盘" desc="ML-KEM-768 · ML-DSA-65 签名" icon={Cpu}>
       <div className="flex items-center gap-4">
         <div className="relative h-[108px] w-[108px] shrink-0">
           <svg viewBox="0 0 100 100" className="h-full w-full -rotate-90">

@@ -12,7 +12,7 @@ const STEPS = [
   { key: 1, label: "资产确权", icon: Fingerprint, desc: "RWA 上链 + 所有权 ZK 证明" },
   { key: 2, label: "AI 合规评分", icon: Cpu, desc: "Minara-AI 0-100 分合规评估" },
   { key: 3, label: "多签公证", icon: ShieldCheck, desc: "3/5 多签委员会签名" },
-  { key: 4, label: "ZK 证明生成", icon: FileCheck2, desc: "Kyber-768 零知识证明" },
+  { key: 4, label: "ZK 证明生成", icon: FileCheck2, desc: "ML-DSA-65 签名 + ZK 证明" },
   { key: 5, label: "链上存证", icon: BadgeCheck, desc: "DOI + 不可篡改记录" },
 ];
 

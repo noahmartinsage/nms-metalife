@@ -12,7 +12,7 @@ import QuantumBridge from "@/components/quantum/QuantumBridge";
 import QuantumContractManager from "@/components/quantum/QuantumContractManager";
 
 const SECURITY = [
-  ["账户安全", "Kyber-768 量子签名 + DID 身份", "100%"],
+  ["账户安全", "ML-DSA-65 量子签名 + DID 身份", "100%"],
   ["交易安全", "0 Gas + 量子签名 + 实时风控", "100%"],
   ["资产安全", "AI 熔断 + 多签审核 + 保证金冻结", "96%"],
   ["合约安全", "量子合约审计 + Rabby 式风险检测", "94%"],
@@ -26,7 +26,7 @@ export default function QuantumChain() {
       <PageHeader
         icon={Atom}
         title="量子公链架构"
-        subtitle="L1 网络 / L2 共识 / L3 协议 / L4 应用 四层架构 · Kyber-768 抗量子 · PoS + AI 验证 · 0 Gas"
+        subtitle="L1 网络 / L2 共识 / L3 协议 / L4 应用 四层架构 · ML-DSA-65 抗量子 · PoS + AI 验证 · 0 Gas"
         badge={<Badge variant="purple">抗量子 L5</Badge>}
       />
 

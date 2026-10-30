@@ -9,7 +9,7 @@ import { mockHash } from "@/lib/format";
 
 const ALGOS = [
   {
-    name: "Kyber-768",
+    name: "ML-DSA-65",
     type: "KEM 密钥封装",
     desc: "NIST PQC 标准，用于钱包公钥协商与交易签名",
     strength: 192,
@@ -38,7 +38,7 @@ const ALGOS = [
   },
 ];
 
-/** 量子安全矩阵（Kyber-768 / Dilithium / 密钥轮换 / 交易签名演示） */
+/** 量子安全矩阵（ML-DSA-65 / Dilithium / 密钥轮换 / 交易签名演示） */
 export default function QuantumSecurityMatrix() {
   const [signing, setSigning] = useState(false);
   const [record, setRecord] = useState(null);
@@ -50,7 +50,7 @@ export default function QuantumSecurityMatrix() {
     setTimeout(() => {
       const ms = Math.round((performance.now() - t0) * 100) / 100;
       setRecord({
-        sig: `KYBER768-${mockHash("", 24).toUpperCase()}`,
+        sig: `DEMO-UNSIGNED-${mockHash("", 24).toUpperCase()}`,
         ms,
         hash: mockHash("0x", 40),
       });
@@ -101,7 +101,7 @@ export default function QuantumSecurityMatrix() {
 
       <div className="mt-3 space-y-1.5">
         {[
-          ["签名算法", "Kyber-768 KEM + Dilithium3"],
+          ["签名算法", "ML-KEM-768 + ML-DSA-653"],
           ["交易字段", "quantum_signature · signature_time_ms"],
           ["密钥轮换", "每 8 小时 · 上次 08:02"],
           ["多签委员会", "3/5 · RWA 与跨链大额"],

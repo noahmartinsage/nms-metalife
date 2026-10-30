@@ -387,7 +387,7 @@ export default function RegisterFlow() {
         </div>
 
         <p className="mt-3 flex items-center justify-center gap-1 text-[9px] text-muted-foreground">
-          <ShieldCheck className="h-2.5 w-2.5" /> 账户信息由 Kyber-768 量子加密保护 · 演示环境不采集真实信息
+          <ShieldCheck className="h-2.5 w-2.5" /> 账户信息由 ML-DSA-65 量子签名保护 · 演示环境不采集真实信息
         </p>
 
         <div className="mt-4">

@@ -54,7 +54,7 @@ export default function OnChainAssetDashboard() {
         {[
           ["跨链桥", "LayerZero · 正常"],
           ["AI 风控", "Minara-AI · 监控中"],
-          ["量子签名", "Kyber-768 · 已启用"],
+          ["量子签名", "ML-DSA-65 · 已启用"],
           ["多签委员会", "3/5 · 在线"],
         ].map(([k, v]) => (
           <div key={k} className="rounded-lg border border-white/10 bg-white/[0.03] px-2 py-1.5">

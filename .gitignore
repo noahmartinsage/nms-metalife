@@ -14,3 +14,7 @@ npm-debug.log*
 server/data/*.db
 server/data/*.db-*
 .ssr-seed
+server/data/.kms/
+server/data/.kms-master
+.env
+.env.local

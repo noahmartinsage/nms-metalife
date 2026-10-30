@@ -15,6 +15,7 @@ import { fmtNum, fmtDate } from "@/lib/format";
 import { findTier } from "@/lib/promotionData";
 import ReadinessPanel from "@/components/admin/ReadinessPanel";
 import BackendPanel from "@/components/admin/BackendPanel";
+import KMSPanel from "@/components/admin/KMSPanel";
 
 export default function AdminPanel() {
   const { data: users } = useEntityList("UserBalance", {}, "-total_consumption", 20);
@@ -49,6 +50,7 @@ export default function AdminPanel() {
           <TabsTrigger value="entities">实体数据</TabsTrigger>
           <TabsTrigger value="system">系统设置</TabsTrigger>
           <TabsTrigger value="readiness">生产自检</TabsTrigger>
+          <TabsTrigger value="kms">密钥签名</TabsTrigger>
         </TabsList>
 
         <TabsContent value="users">
@@ -141,6 +143,10 @@ export default function AdminPanel() {
           </SectionCard>
         </TabsContent>
 
+        <TabsContent value="kms">
+          <KMSPanel />
+        </TabsContent>
+
         <TabsContent value="readiness">
           <ReadinessPanel />
         </TabsContent>
@@ -153,7 +159,7 @@ export default function AdminPanel() {
                 ["平台名称", "NMS MetaLife"],
                 ["系统版本", "V13.0"],
                 ["Gas 模式", "平台补贴（0 Gas）"],
-                ["量子签名", "Kyber-768 + Dilithium"],
+                ["量子签名", "ML-DSA-65 + Dilithium"],
                 ["多签委员会", "3/5"],
                 ["数据存储", API_MODE === "server" ? "SQLite（node:sqlite）" : "localStorage（演示）"],
               ].map(([k, v]) => (

@@ -57,7 +57,7 @@ const FEATURES = [
   { name: "量化回测", domain: "trade", desc: "90 天历史回放与滑点建模", metrics: [["收益", "+18.6%"], ["回撤", "-6.2%"], ["夏普", "2.14"]] },
   { name: "跨链桥", domain: "bridge", desc: "多链资产一键桥接", metrics: [["通道", "4 条"], ["延迟", "12 min"], ["费", "0"]] },
   { name: "LayerZero 桥", domain: "bridge", desc: "全链互操作协议接入", metrics: [["链", "12 条"], ["成功率", "99.8%"], ["状态", "正常"]] },
-  { name: "量子桥", domain: "bridge", desc: "抗量子签名保护的跨链通道", metrics: [["算法", "Kyber-768"], ["覆盖", "100%"], ["审计", "通过"]] },
+  { name: "量子桥", domain: "bridge", desc: "抗量子签名保护的跨链通道", metrics: [["算法", "ML-DSA-65"], ["覆盖", "100%"], ["审计", "通过"]] },
   { name: "量子隐私审计与看板", domain: "audit", desc: "密钥强度 / 签名覆盖 / 迁移进度", metrics: [["等级", "L5"], ["覆盖", "100%"], ["风险", "18/100"]] },
   { name: "量子合约管理", domain: "audit", desc: "合约版本、权限与升级治理", metrics: [["合约", "18 个"], ["高危", "0"], ["待复审", "1"]] },
   { name: "ZK 智能审计", domain: "audit", desc: "RWA 多签审计 5 步 + VC 凭证", metrics: [["步骤", "5"], ["多签", "3/5"], ["凭证", "可分享"]] },

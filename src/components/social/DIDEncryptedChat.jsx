@@ -159,7 +159,7 @@ export default function DIDEncryptedChat() {
   return (
     <SectionCard
       title="DID 加密聊天"
-      desc={`Kyber-768 + AES-256-GCM · ${totalMsgs} 条 · P2P 实时同步`}
+      desc={`ML-DSA-65 + AES-256-GCM · ${totalMsgs} 条 · P2P 实时同步`}
       icon={Lock}
       actions={
         <div className="flex items-center gap-1">

@@ -647,6 +647,18 @@
         },
         "signature_time_ms": {
           "type": "number"
+        },
+        "signature_algorithm": {
+          "type": "string"
+        },
+        "signing_key_id": {
+          "type": "string"
+        },
+        "signing_key_fingerprint": {
+          "type": "string"
+        },
+        "payload_hash": {
+          "type": "string"
         }
       },
       "required": [

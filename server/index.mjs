@@ -59,6 +59,7 @@ import {
 } from "./auth.mjs";
 import { startScheduler, schedulerStatus, runReconcileNow } from "./scheduler.mjs";
 import { signMerchantPayload, verifyMerchantPayload, QR_META } from "./qr.mjs";
+import kms from "./kms.mjs";
 
 const PORT = Number(process.env.PORT || 8787);
 const HOST = process.env.HOST || "127.0.0.1";
@@ -139,6 +140,38 @@ const cors = (req, res) => {
 /** 当前身份（严格模式下可能为 null，写操作请用 requireAuth/requireRole） */
 const authOf = (req) => resolveIdentity(req) || { id: "anonymous", email: "anonymous", full_name: "未登录", role: "guest" };
 
+/**
+ * 交易签名载荷：只包含**不可变**的链上字段，顺序由 canonical 保证。
+ * 注意不要包含 status —— 退款会把 status 改成 failed，若参与签名会导致验签必然失败。
+ * 客户端提交的签名一律丢弃，服务端重签后才落库。
+ */
+const txPayload = (body) =>
+  kms.canonical({
+    tx_hash: body.tx_hash,
+    block_number: body.block_number ?? null,
+    from: body.from_address,
+    to: body.to_address,
+    amount: Number(body.amount),
+    token: body.token_type || "NMS",
+  });
+
+/** 为交易行生成真实后量子签名 */
+async function signTransactionRow(body, actor) {
+  const signed = await kms.sign(txPayload(body), {
+    context: "transaction",
+    actor: actor?.email || "client",
+  });
+  return {
+    ...body,
+    quantum_signature: signed.signature,
+    signature_time_ms: Date.now(),
+    signature_algorithm: signed.algorithm,
+    signing_key_id: signed.keyId,
+    signing_key_fingerprint: signed.fingerprint,
+    payload_hash: signed.payloadHash,
+  };
+}
+
 /* ------------------------------ 路由 ------------------------------ */
 const server = http.createServer(async (req, res) => {
   const started = Date.now();
@@ -172,6 +205,7 @@ const server = http.createServer(async (req, res) => {
         channel: { pay: "POST /api/pay", refund: "POST /api/pay/refund/request", reconcile: "GET /api/admin/reconcile", qr: QR_META },
         refundRules: REFUND_RULES,
         auth: AUTH_META,
+        kms: kms.health(),
         scheduler: schedulerStatus(),
       });
     }
@@ -261,7 +295,9 @@ const server = http.createServer(async (req, res) => {
       }
       if (!action && method === "POST") {
         const body = await readBody(req);
-        return json(res, 201, create(name, body));
+        /* 交易签名由服务端强制生成：客户端提交的 quantum_signature 一律丢弃，防伪造 */
+        const row = name === "Transaction" ? await signTransactionRow(body, authOf(req)) : body;
+        return json(res, 201, create(name, row));
       }
       if (id && method === "GET") return json(res, 200, get(name, id));
       if (id && (method === "PATCH" || method === "PUT")) {
@@ -305,20 +341,20 @@ const server = http.createServer(async (req, res) => {
     if (method === "POST" && url.pathname === "/api/pay") {
       const body = await readBody(req);
       const user = authOf(req);
-      const result = pay({ ...body, userEmail: body.userEmail || user.email });
+      const result = await pay({ ...body, userEmail: body.userEmail || user.email });
       return json(res, result.idempotent ? 200 : 201, result);
     }
 
     if (method === "POST" && url.pathname === "/api/pay/refund") {
       const body = await readBody(req);
-      return json(res, 200, refund(body));
+      return json(res, 200, await refund(body));
     }
 
     /* 退款申请（小额自动通过，大额进入审批） */
     if (method === "POST" && url.pathname === "/api/pay/refund/request") {
       const body = await readBody(req);
       const user = authOf(req);
-      return json(res, 200, requestRefund({ ...body, requester: body.requester || user.email }));
+      return json(res, 200, await requestRefund({ ...body, requester: body.requester || user.email }));
     }
 
     if (method === "GET" && url.pathname === "/api/admin/refunds") {
@@ -331,14 +367,14 @@ const server = http.createServer(async (req, res) => {
     if (method === "POST" && seg[0] === "api" && seg[1] === "admin" && seg[2] === "refunds" && seg[3] && seg[4]) {
       const body = await readBody(req);
       const requestId = decodeURIComponent(seg[3]);
-      if (seg[4] === "approve") return json(res, 200, approveRefund({ ...body, requestId }));
+      if (seg[4] === "approve") return json(res, 200, await approveRefund({ ...body, requestId }));
       if (seg[4] === "reject") return json(res, 200, rejectRefund({ ...body, requestId }));
     }
 
     if (method === "POST" && url.pathname === "/api/admin/reconcile/compensate") {
       const body = await readBody(req).catch(() => ({}));
       const user = authOf(req);
-      return json(res, 200, compensate({ date: body.date, actor: user.email }));
+      return json(res, 200, await compensate({ date: body.date, actor: user.email }));
     }
 
     if (method === "GET" && url.pathname === "/api/admin/audit") {
@@ -411,8 +447,122 @@ const server = http.createServer(async (req, res) => {
       });
     }
 
+    /* ---------------------------- KMS / HSM ---------------------------- */
+    if (method === "GET" && url.pathname === "/api/kms/health") {
+      return json(res, 200, kms.health());
+    }
+
+    if (method === "GET" && url.pathname === "/api/kms/keys") {
+      requireRole(req, ["admin", "owner"]);
+      return json(res, 200, {
+        keys: kms.listKeys({ alias: url.searchParams.get("alias") || undefined }),
+        provider: kms.health().provider,
+        activeAlgorithm: kms.health().activeAlgorithm,
+      });
+    }
+
+    if (method === "POST" && url.pathname === "/api/kms/rotate") {
+      const user = requireRole(req, ["admin", "owner"]);
+      const body = await readBody(req).catch(() => ({}));
+      const res2 = kms.rotateKey(body.alias || "nms-chain-tx", user.email);
+      audit({ actor: user.email, action: "kms.rotate", target: "kms", payload: res2 });
+      return json(res, 200, res2);
+    }
+
+    if (method === "POST" && url.pathname === "/api/kms/sign") {
+      const user = requireAuth(req);
+      const body = await readBody(req);
+      if (body.payload === undefined) return json(res, 400, { error: "payload_required" });
+      const signed = await kms.sign(body.payload, {
+        context: body.context || "api",
+        actor: user.email,
+      });
+      return json(res, 200, signed);
+    }
+
+    if (method === "POST" && url.pathname === "/api/kms/verify") {
+      const body = await readBody(req);
+      const result = await kms.verify({
+        payload: body.payload,
+        signature: body.signature,
+        keyId: body.keyId,
+        alias: body.alias,
+      });
+      return json(res, result.valid ? 200 : 400, result);
+    }
+
+    if (method === "GET" && url.pathname === "/api/kms/audit") {
+      requireRole(req, ["admin", "owner"]);
+      return json(res, 200, {
+        stats: kms.stats(),
+        items: kms.auditTrail({
+          limit: Number(url.searchParams.get("limit") || 20),
+          op: url.searchParams.get("op") || undefined,
+        }),
+      });
+    }
+
+    if (method === "POST" && url.pathname === "/api/chain/checkpoint") {
+      const user = requireRole(req, ["admin", "owner"]);
+      const cp = await kms.checkpoint({ actor: user.email });
+      audit({ actor: user.email, action: "chain.checkpoint", target: "chain", payload: { height: cp.height, root: cp.rootHash } });
+      return json(res, 201, cp);
+    }
+
+    if (method === "GET" && url.pathname === "/api/chain/checkpoints") {
+      return json(res, 200, {
+        items: kms.listCheckpoints({ limit: Number(url.searchParams.get("limit") || 10) }),
+        latest: kms.listCheckpoints({ limit: 1 })[0] || null,
+      });
+    }
+
+    if (method === "POST" && url.pathname === "/api/chain/checkpoint/verify") {
+      const body = await readBody(req).catch(() => ({}));
+      return json(res, 200, await kms.verifyCheckpoint(body.id || "latest"));
+    }
+
+    /* 逐笔校验链上交易签名（真实验签，不只是哈希串联） */
     if (method === "GET" && url.pathname === "/api/chain/verify") {
-      return json(res, 200, verifyChain());
+      const limit = Math.min(Number(url.searchParams.get("limit") || 50), 200);
+      const rows = db
+        .prepare('SELECT * FROM "Transaction" WHERE quantum_signature IS NOT NULL AND quantum_signature != \'\' ORDER BY created_date DESC LIMIT ?')
+        .all(limit);
+
+      const results = [];
+      let okCount = 0;
+      let failCount = 0;
+      let unsigned = 0;
+
+      for (const tx of rows) {
+        if (!tx.signature_algorithm || !tx.signing_key_id) {
+          unsigned += 1;
+          results.push({ txHash: tx.tx_hash, valid: null, reason: "legacy_unsigned" });
+          continue;
+        }
+        const v = await kms.verify({
+          payload: txPayload(tx),
+          signature: tx.quantum_signature,
+          keyId: tx.signing_key_id,
+        });
+        v.valid ? (okCount += 1) : (failCount += 1);
+        results.push({
+          txHash: tx.tx_hash,
+          valid: v.valid,
+          reason: v.reason || null,
+          algorithm: v.algorithm,
+          keyVersion: v.keyVersion,
+        });
+      }
+
+      return json(res, 200, {
+        checked: rows.length,
+        valid: okCount,
+        invalid: failCount,
+        legacyUnsigned: unsigned,
+        ok: failCount === 0,
+        chain: verifyChain(),
+        details: results.slice(0, 20),
+      });
     }
 
     return json(res, 404, { error: "not_found", path: url.pathname });
@@ -459,11 +609,16 @@ process.on("unhandledRejection", (err) => {
 
 server.listen(PORT, HOST, () => {
   const info = dbInfo();
+  const boot = kms.init();
+  const kmsHealth = kms.health();
   console.log(`\n  NMS MetaLife API  →  http://${HOST}:${PORT}`);
   console.log(`  数据库            →  ${SERVER_BOOT.dbFile}`);
   console.log(`  实体              →  ${info.entities} 个 ${SERVER_BOOT.seeded ? "(已导入演示数据)" : ""}`);
   console.log(`  实体行数          →  ${Object.entries(info.counts).map(([k, v]) => `${k}:${v}`).join(" ")}`);
   console.log(`  退款风控          →  ≤${REFUND_RULES.autoApproveLimit} 自动通过 / ≤${REFUND_RULES.merchantLimit} 需确认 / 以上需管理员`);
+  console.log(`  KMS / HSM         →  ${boot.provider.toUpperCase()} · key v${boot.version} · ${boot.fingerprint}`);
+  console.log(`  后量子可用        →  ${kmsHealth.pqcAlgorithms.length ? kmsHealth.pqcAlgorithms.join(", ") : "无（降级 Ed25519）"}`);
+  console.log(`  密钥托管          →  ${kmsHealth.keystore === "env" ? "环境变量主密钥" : "本地主密钥文件（生产请改用 NMS_KMS_MASTER_KEY）"}`);
   startScheduler();
   console.log("");
 });

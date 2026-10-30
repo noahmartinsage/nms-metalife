@@ -10,7 +10,7 @@ import { shortAddr } from "@/lib/format";
 const FEATURES = [
   { key: "dht", label: "Hyperswarm DHT 节点发现", icon: Network, on: true },
   { key: "hypercore", label: "Hypercore 去中心化账本同步", icon: HardDriveDownload, on: true },
-  { key: "kyber", label: "Kyber-768 量子签名", icon: Lock, on: true },
+  { key: "kyber", label: "ML-DSA-65 量子签名", icon: Lock, on: true },
   { key: "did", label: "DID 身份绑定", icon: Fingerprint, on: true },
   { key: "relay", label: "P2P 中继（NAT 穿透）", icon: Radio, on: false },
 ];

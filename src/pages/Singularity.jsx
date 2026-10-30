@@ -87,7 +87,7 @@ export default function Singularity() {
         <div className="mt-2 grid gap-2 sm:grid-cols-4">
           {[
             ["PoS + AI 验证", "21,480 TPS"],
-            ["Kyber-768", "抗量子签名"],
+            ["ML-DSA-65", "抗量子签名"],
             ["Hypercore", "去中心化存储"],
             ["LayerZero", "12 条链互操作"],
           ].map(([k, v]) => (

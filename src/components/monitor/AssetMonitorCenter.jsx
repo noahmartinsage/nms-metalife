@@ -8,7 +8,7 @@ import { fmtNum } from "@/lib/format";
 const MODULES = [
   { key: "bridge", name: "跨链桥监控", icon: Waypoints, status: "正常", score: 96, desc: "LayerZero 通道 4 条 · 确认延迟 12min" },
   { key: "rwa", name: "RWA 确权监控", icon: Boxes, status: "正常", score: 92, desc: "已确权 1,284 项 · 待审 12 项" },
-  { key: "quantum", name: "量子合约监控", icon: Cpu, status: "正常", score: 88, desc: "Kyber-768 签名覆盖率 100%" },
+  { key: "quantum", name: "量子合约监控", icon: Cpu, status: "正常", score: 88, desc: "ML-DSA-65 签名覆盖率 100%" },
   { key: "ai", name: "AI 风控监控", icon: Activity, status: "预警", score: 74, desc: "NMS/USDT 池波动 18.4%（阈值 25%）" },
   { key: "audit", name: "合约审计", icon: FileSearch, status: "正常", score: 95, desc: "近 30 天 0 高危漏洞" },
 ];
@@ -56,7 +56,7 @@ export default function AssetMonitorCenter() {
             ["11:28", "跨链桥", "LayerZero → Polygon 通道确认完成 1,284 笔", "text-emerald-300"],
             ["10:52", "RWA 确权", "新增 3 项实物资产通过 3/5 多签", "text-cyan-300"],
             ["09:16", "合约审计", "NMSStaking.sol 审计通过，评分 95", "text-emerald-300"],
-            ["08:02", "量子签名", "Kyber-768 密钥轮换完成", "text-violet-300"],
+            ["08:02", "量子签名", "ML-DSA-65 密钥轮换完成", "text-violet-300"],
           ].map(([t, mod, msg, c]) => (
             <div key={t + mod} className="flex items-start gap-2 rounded-lg bg-white/[0.02] px-2 py-1.5">
               <span className="num shrink-0 text-[9px] text-muted-foreground">{t}</span>

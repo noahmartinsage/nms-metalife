@@ -20,7 +20,7 @@ export default function Social() {
         icon={MessageCircle}
         title="元 Social"
         subtitle="P2P 端对端加密社交 · DID 身份 · 区划 DAO · 红包雨 · 精英圈层"
-        badge={<Badge variant="success">Kyber-768 E2E</Badge>}
+        badge={<Badge variant="success">ML-DSA-65 E2E</Badge>}
       />
 
       <Tabs defaultValue="feed">

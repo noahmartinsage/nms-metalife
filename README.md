@@ -180,6 +180,85 @@ NFT 池   +10  NMS（实物/门店各 50%）
 
 ---
 
+## v10：真实 KMS/HSM 后量子签名 + 全模块生产级审计
+
+### 1. 为什么需要重做签名
+
+此前 `quantum_signature` 是前端拼的字符串（`KYBER768-...`），服务端不校验、也不重签——等于装饰。
+另外 **Kyber 是 KEM 不是签名算法**，把它当签名用是概念错误。本轮改为真实的 NIST 后量子签名。
+
+### 2. KMS 架构（`server/kms.mjs`）
+
+三层：**KeyStore → Provider → Signer**
+
+| 层 | 职责 |
+|---|---|
+| KeyStore | 私钥用 AES-256-GCM 信封加密后落库（`v1.<iv>.<tag>.<ct>`），内存中仅签名瞬间解封；主密钥来自 `NMS_KMS_MASTER_KEY`（HKDF 派生），缺省则生成 `server/data/.kms-master`（0600，生产须改环境变量） |
+| Provider | `ml-dsa-65` / `ml-dsa-44` / `slh-dsa-sha2-128s`（OpenSSL 3.5+ CLI，真实后量子）；不可用时降级 `ed25519`（Node 内置） |
+| Signer | 异步并发池（默认 2）+ 同载荷 LRU 缓存 + 全量审计 |
+
+**实测算法**：ML-DSA-65（NIST FIPS 204），私钥 5604 B、公钥 2726 B、签名 3309 B（base64 4412 字符），单次约 160–220 ms。
+
+### 3. 关键设计决策
+
+- **签名只覆盖不可变字段**：`tx_hash / block_number / from / to / amount / token`。
+  `status` 会因退款变更，若进签名会导致退款后验签必然失败——这是实测踩到的坑。
+- **服务端强制重签**：客户端提交的 `quantum_signature` 一律丢弃（`signTransactionRow`），
+  否则任何人都能伪造签名。测试里提交 `FORGED-SIGNATURE` 会被真实签名覆盖。
+- **密钥轮换不破坏历史**：旧密钥标记 `retired`，公钥保留，历史交易仍可验签。
+- **私钥永不出模块**：`/api/kms/keys` 只返回公钥 PEM 与指纹。
+
+### 4. 接口
+
+```
+GET  /api/kms/health                 provider / 算法 / 密钥数 / 延迟 / 审计统计
+GET  /api/kms/keys                   admin：公钥 + 指纹（无返回值私钥）
+POST /api/kms/rotate                 admin：轮换（旧版置 retired）
+POST /api/kms/sign                   登录用户：签名任意载荷
+POST /api/kms/verify                 公开：仅凭公钥验签
+GET  /api/kms/audit                  admin：签名/验签留痕
+POST /api/chain/checkpoint           admin：账本根哈希后量子签名
+GET  /api/chain/checkpoints          检查点列表
+POST /api/chain/checkpoint/verify    校验检查点签名
+GET  /api/chain/verify               逐笔验证链上交易签名
+```
+
+### 5. 数据模型扩展
+
+`Transaction` 新增：`signature_algorithm` / `signing_key_id` / `signing_key_fingerprint` / `payload_hash`。
+KMS 自有表：`kms_keys` / `kms_audit` / `chain_checkpoints`。
+
+### 6. 前端
+
+管理后台新增「密钥签名」Tab（`KMSPanel`）：算法与后端、活动密钥指纹、轮换/生成检查点/全链验签，
+以及**签名 → 验签 → 篡改测试**的浏览器内闭环演示。`Monitor` 页重写为真实链上监控（交易表 + 哈希链 + 签名验签 + 由数据算出的风险信号）。
+
+### 7. 全模块生产级审计
+
+`scripts/audit-modules.mjs`：路由 → 页面 → 依赖组件，8 个维度打分，输出 `docs/module-audit.md`。
+
+```
+数据绑定 / 写入闭环 / 错误处理 / 加载态 / 空态提示 / 页面标题 / 金额防护 / 响应式
+```
+
+新增共享原语：`ModuleState`（加载/错误/空三态）、`ModuleShell`（配置驱动列表页，六件事一次做对）、
+`useEntityList` 补 `error` 状态（此前失败被静默当成空列表）。
+
+### 8. 验证
+
+```bash
+node scripts/test-kms.mjs          # 42 项：算法/私钥保护/签名验签/篡改/轮换/审计/检查点/强制重签
+node scripts/test-pay.mjs          # 25 项
+node scripts/test-refund.mjs       # 18 项
+node scripts/test-production.mjs   # 19 项
+node scripts/test-auth.mjs         # 26 项
+node scripts/audit-modules.mjs     # 全模块矩阵 → docs/module-audit.md
+```
+
+合计 **130 项断言全通过**。
+
+---
+
 ## v9：商用生产级加固（鉴权 / 双人复核 / 自动补偿 / 审计）
 
 ### 1. 鉴权与 RBAC（此前是最大缺口）
