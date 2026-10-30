@@ -46,6 +46,7 @@ export default function ModuleShell({
   onRowClick,
   actions,
   emptyHint = "暂无数据",
+  topSlot,
   children,
 }) {
   const { data, loading, error, refresh } = useEntityList(entity, query, sort, limit);
@@ -84,6 +85,8 @@ export default function ModuleShell({
           ))}
         </div>
       )}
+
+      {topSlot && <div>{topSlot}</div>}
 
       <SectionCard
         title={`${title}记录`}

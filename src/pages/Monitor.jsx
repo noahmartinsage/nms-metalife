@@ -73,7 +73,7 @@ export default function Monitor() {
       subtitle="交易吞吐、确认状态、账本哈希链与后量子签名验签，全部取自真实数据"
       badge={<Badge variant={chain && chain.ok === false ? "danger" : "success"}>{chain && chain.ok === false ? "异常" : "运行中"}</Badge>}
       entity="Transaction"
-      limit={150}
+      limit={20}
       searchKeys={["tx_hash", "from_address", "to_address", "token_type"]}
       emptyHint="链上暂无交易，完成一笔支付后即可看到记录"
       actions={
