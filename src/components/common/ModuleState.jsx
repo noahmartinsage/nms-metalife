@@ -70,3 +70,31 @@ export function InlineLoading({ label = "加载中" }) {
     </span>
   );
 }
+
+/**
+ * 页面级错误横幅：用于已有自定义布局、不便整体换成 ModuleState 的页面
+ * 用法：<DataErrorBanner error={error} loading={loading} onRetry={refresh} />
+ */
+export function DataErrorBanner({ error, loading, onRetry, loadingLabel = "数据加载中…" }) {
+  if (error) {
+    return (
+      <div className="flex flex-wrap items-center gap-2 rounded-xl border border-rose-400/25 bg-rose-400/[0.06] px-3 py-2">
+        <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-rose-300" />
+        <p className="min-w-0 flex-1 text-[10px] leading-relaxed text-rose-200">数据加载失败：{error}</p>
+        {onRetry && (
+          <Button size="sm" variant="outline" onClick={onRetry}>
+            <RefreshCw className="h-3 w-3" /> 重试
+          </Button>
+        )}
+      </div>
+    );
+  }
+  if (loading) {
+    return (
+      <p className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+        <Loader2 className="h-3 w-3 animate-spin" /> {loadingLabel}
+      </p>
+    );
+  }
+  return null;
+}

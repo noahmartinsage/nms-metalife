@@ -12,6 +12,8 @@ import {
   Wallet,
 } from "lucide-react";
 import PageHeader from "@/components/common/PageHeader";
+import { DataErrorBanner } from "@/components/common/ModuleState";
+import { useSession } from "@/hooks/useSession";
 import { SectionCard } from "@/components/common/SectionCard";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -75,6 +77,8 @@ function downloadICS(amount, currency, deadline) {
 }
 
 export default function OTC() {
+  /* 余额与登录态：OTC 交易必须基于真实余额 */
+  const { balance, loading, error, refresh } = useSession();
   const [currency, setCurrency] = useState("CNY");
   const [payment, setPayment] = useState("全部");
   const [active, setActive] = useState(null);
@@ -145,6 +149,8 @@ export default function OTC() {
         subtitle="8 币种 · 4 支付方式 · 平台 Escrow 担保 · 15 分钟倒计时 · DAO 争议仲裁"
         badge={<Badge variant="success">担保交易</Badge>}
       />
+
+      <DataErrorBanner error={error} loading={loading} onRetry={refresh} />
 
       <div className="grid gap-4 lg:grid-cols-[1.5fr_1fr]">
         <div className="space-y-3">

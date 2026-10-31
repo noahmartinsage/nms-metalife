@@ -1,16 +1,16 @@
 # NMS MetaLife · 全模块生产级审计报告
 
-> 生成时间：2026-10-30 19:50:57　|　审计方式：静态分析（路由 → 页面 → 依赖组件）
+> 生成时间：2026-10-31 09:33:40　|　审计方式：静态分析（路由 → 页面 → 依赖组件）
 
 ## 总览
 
 | 指标 | 数值 |
 |---|---|
 | 路由总数 | 35 |
-| 满分模块 | 8 |
-| 良好（75–99） | 13 |
-| 待改进（<75） | 14 |
-| 平均分 | 74 |
+| 满分模块 | 14 |
+| 良好（75–99） | 21 |
+| 待改进（<75） | 0 |
+| 平均分 | 93 |
 
 ## 服务端能力
 
@@ -25,133 +25,49 @@
 | audit | ✅ |
 | qr | ✅ |
 
-服务端模块：audit.mjs, auth.mjs, db.mjs, index.mjs, kms.mjs, payments.mjs, qr.mjs, scheduler.mjs
+服务端模块：audit.mjs, auth.mjs, db.mjs, index.mjs, kms-aliyun.mjs, kms.mjs, payments.mjs, qr.mjs, scheduler.mjs
 
 ## 逐模块矩阵
 
-| 模块 | 路由 | 分数 | 数据 | 写入 | 错误 | 加载 | 空态 | 标题 | 金额 | 响应式 |
-|---|---|---:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|
-| Home | `/` | 100 | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Champions | `/Champions` | 63 | ✅ | ✅ | ✅ | ❌ | ❌ | ✅ | ❌ | ✅ |
-| QuantumChain | `/quantum` | 63 | ❌ | ❌ | ✅ | ❌ | ✅ | ✅ | ✅ | ✅ |
-| Login | `/login` | 75 | ❌ | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Register | `/register` | 88 | ✅ | ✅ | ✅ | ❌ | ✅ | ✅ | ✅ | ✅ |
-| Invite | `/invite` | 50 | ❌ | ❌ | ✅ | ❌ | ✅ | ✅ | ❌ | ✅ |
-| Wallet | `/wallet` | 88 | ✅ | ✅ | ✅ | ❌ | ✅ | ✅ | ✅ | ✅ |
-| PaymentCenter | `/payment` | 88 | ✅ | ✅ | ✅ | ❌ | ✅ | ✅ | ✅ | ✅ |
-| NFTMarket | `/nft` | 100 | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| DEXTrading | `/dex` | 100 | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| QuantDashboard | `/quant` | 100 | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Monitor | `/monitor` | 88 | ✅ | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Social | `/social` | 88 | ✅ | ✅ | ✅ | ❌ | ✅ | ✅ | ✅ | ✅ |
-| Discover | `/discover` | 63 | ✅ | ❌ | ❌ | ❌ | ✅ | ✅ | ✅ | ✅ |
-| AIAssistant | `/ai` | 75 | ✅ | ❌ | ✅ | ✅ | ✅ | ✅ | ❌ | ✅ |
-| DeFi | `/defi` | 88 | ✅ | ✅ | ✅ | ❌ | ✅ | ✅ | ✅ | ✅ |
-| PredictionMarket | `/prediction` | 75 | ✅ | ❌ | ✅ | ❌ | ✅ | ✅ | ✅ | ✅ |
-| OTC | `/OTC` | 75 | ✅ | ✅ | ❌ | ❌ | ✅ | ✅ | ✅ | ✅ |
-| Profile | `/profile` | 88 | ✅ | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Documentation | `/docs` | 63 | ✅ | ✅ | ❌ | ❌ | ✅ | ✅ | ❌ | ✅ |
-| AdminPanel | `/admin` | 100 | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Explorer | `/explorer` | 50 | ✅ | ❌ | ❌ | ❌ | ✅ | ✅ | ❌ | ✅ |
-| Whitepaper | `/whitepaper` | 50 | ❌ | ❌ | ❌ | ❌ | ✅ | ✅ | ✅ | ✅ |
-| MetaPay | `/metapay` | 50 | ✅ | ❌ | ❌ | ❌ | ✅ | ✅ | ❌ | ✅ |
-| MetaLife | `/metalife` | 50 | ❌ | ❌ | ❌ | ❌ | ✅ | ✅ | ✅ | ✅ |
-| Landing | `/landing` | 25 | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ | ✅ |
-| CloudStorage | `/cloudstorage` | 100 | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| LifeScience | `/lifescience` | 63 | ✅ | ❌ | ❌ | ❌ | ✅ | ✅ | ✅ | ✅ |
-| ShortVideo | `/shortvideo` | 38 | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ | ✅ | ✅ |
-| NearbyMerchants | `/nearby` | 75 | ✅ | ❌ | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| FixedDeposit | `/fixeddeposit` | 88 | ✅ | ✅ | ✅ | ❌ | ✅ | ✅ | ✅ | ✅ |
-| UserActivity | `/useractivity` | 50 | ✅ | ❌ | ❌ | ❌ | ✅ | ✅ | ❌ | ✅ |
-| OnChainAgent | `/onchainagent` | 100 | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| DigitalRights | `/digitalrights` | 100 | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Singularity | `/singularity` | 50 | ❌ | ❌ | ❌ | ❌ | ✅ | ✅ | ✅ | ✅ |
+> 类型：`功能` = 有业务数据与写入；`内容` = 落地页/白皮书/文档，仅考核标题与响应式。
 
-## 待改进明细
-
-### Champions `/Champions` — 63 分
-
-- 缺少加载态
-- 缺少空态提示
-- 金额未做防护
-
-### QuantumChain `/quantum` — 63 分
-
-- 无数据绑定（疑似静态壳）
-- 缺少加载态
-
-### Invite `/invite` — 50 分
-
-- 无数据绑定（疑似静态壳）
-- 缺少加载态
-- 金额未做防护
-
-### Discover `/discover` — 63 分
-
-- 缺少错误处理
-- 缺少加载态
-
-### Documentation `/docs` — 63 分
-
-- 缺少错误处理
-- 缺少加载态
-- 金额未做防护
-
-### Explorer `/explorer` — 50 分
-
-- 缺少错误处理
-- 缺少加载态
-- 金额未做防护
-
-### Whitepaper `/whitepaper` — 50 分
-
-- 无数据绑定（疑似静态壳）
-- 缺少错误处理
-- 缺少加载态
-
-### MetaPay `/metapay` — 50 分
-
-- 缺少错误处理
-- 缺少加载态
-- 金额未做防护
-
-### MetaLife `/metalife` — 50 分
-
-- 无数据绑定（疑似静态壳）
-- 缺少错误处理
-- 缺少加载态
-
-### Landing `/landing` — 25 分
-
-- 无数据绑定（疑似静态壳）
-- 缺少错误处理
-- 缺少加载态
-- 缺少空态提示
-
-### LifeScience `/lifescience` — 63 分
-
-- 缺少错误处理
-- 缺少加载态
-
-### ShortVideo `/shortvideo` — 38 分
-
-- 无数据绑定（疑似静态壳）
-- 缺少错误处理
-- 缺少加载态
-- 缺少空态提示
-
-### UserActivity `/useractivity` — 50 分
-
-- 缺少错误处理
-- 缺少加载态
-- 金额未做防护
-
-### Singularity `/singularity` — 50 分
-
-- 无数据绑定（疑似静态壳）
-- 缺少错误处理
-- 缺少加载态
-
+| 模块 | 类型 | 路由 | 分数 | 数据 | 写入 | 错误 | 加载 | 空态 | 标题 | 金额 | 响应式 |
+|---|---|---:|---:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|
+| Home | 功能 | `/` | 100 | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Champions | 功能 | `/Champions` | 88 | ✅ | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| QuantumChain | 内容 | `/quantum` | 100 | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Login | 内容 | `/login` | 100 | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Register | 功能 | `/register` | 88 | ✅ | ✅ | ✅ | ❌ | ✅ | ✅ | ✅ | ✅ |
+| Invite | 功能 | `/invite` | 88 | ✅ | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Wallet | 功能 | `/wallet` | 88 | ✅ | ✅ | ✅ | ❌ | ✅ | ✅ | ✅ | ✅ |
+| PaymentCenter | 功能 | `/payment` | 88 | ✅ | ✅ | ✅ | ❌ | ✅ | ✅ | ✅ | ✅ |
+| NFTMarket | 功能 | `/nft` | 100 | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| DEXTrading | 功能 | `/dex` | 100 | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| QuantDashboard | 功能 | `/quant` | 100 | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Monitor | 功能 | `/monitor` | 88 | ✅ | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Social | 功能 | `/social` | 88 | ✅ | ✅ | ✅ | ❌ | ✅ | ✅ | ✅ | ✅ |
+| Discover | 功能 | `/discover` | 88 | ✅ | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| AIAssistant | 功能 | `/ai` | 88 | ✅ | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| DeFi | 功能 | `/defi` | 88 | ✅ | ✅ | ✅ | ❌ | ✅ | ✅ | ✅ | ✅ |
+| PredictionMarket | 功能 | `/prediction` | 88 | ✅ | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| OTC | 功能 | `/OTC` | 100 | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Profile | 功能 | `/profile` | 88 | ✅ | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Documentation | 内容 | `/docs` | 88 | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ | ✅ |
+| AdminPanel | 功能 | `/admin` | 100 | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Explorer | 功能 | `/explorer` | 88 | ✅ | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Whitepaper | 内容 | `/whitepaper` | 100 | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| MetaPay | 功能 | `/metapay` | 88 | ✅ | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| MetaLife | 内容 | `/metalife` | 100 | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Landing | 内容 | `/landing` | 88 | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ | ✅ | ✅ |
+| CloudStorage | 功能 | `/cloudstorage` | 100 | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| LifeScience | 功能 | `/lifescience` | 88 | ✅ | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| ShortVideo | 功能 | `/shortvideo` | 100 | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| NearbyMerchants | 功能 | `/nearby` | 88 | ✅ | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| FixedDeposit | 功能 | `/fixeddeposit` | 88 | ✅ | ✅ | ✅ | ❌ | ✅ | ✅ | ✅ | ✅ |
+| UserActivity | 功能 | `/useractivity` | 88 | ✅ | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| OnChainAgent | 功能 | `/onchainagent` | 100 | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| DigitalRights | 功能 | `/digitalrights` | 100 | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Singularity | 功能 | `/singularity` | 88 | ✅ | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 
 ## 判定口径
 

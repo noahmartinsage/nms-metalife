@@ -22,6 +22,7 @@ import os from "node:os";
 import path from "node:path";
 import { execFile, execFileSync } from "node:child_process";
 import db from "./db.mjs";
+import aliyun from "./kms-aliyun.mjs";
 
 const DATA_DIR = path.resolve("server/data");
 const KEY_DIR = path.join(DATA_DIR, ".kms");
@@ -95,6 +96,14 @@ let KEK_SOURCE = "unknown";
 function loadMasterKey() {
   if (KEK) return KEK;
 
+  /* 已启用阿里云 KMS 托管：KEK 必须由 await loadMasterKeyAsync() 预加载 */
+  if (aliyun.useCloudKek()) {
+    const err = new Error("kms_not_initialized");
+    err.status = 503;
+    err.detail = "云托管根密钥需先 await kms.init()";
+    throw err;
+  }
+
   const env = process.env.NMS_KMS_MASTER_KEY;
   if (env && env.length >= 16) {
     KEK = crypto.hkdfSync("sha256", Buffer.from(env, "utf8"), Buffer.from("nms-kms-salt"), Buffer.from("kek-v1"), 32);
@@ -114,6 +123,31 @@ function loadMasterKey() {
   );
   KEK_SOURCE = "file";
   return KEK;
+}
+
+/**
+ * 异步加载主密钥（支持阿里云 KMS 托管）
+ * 云托管时：CiphertextBlob → KMS Decrypt → 48B 明文 → HKDF → 32B KEK
+ * 明文用完立即清零，不落盘、不进日志。
+ */
+async function loadMasterKeyAsync() {
+  if (KEK) return KEK;
+
+  if (aliyun.useCloudKek()) {
+    const c = aliyun.config();
+    const plain = await aliyun.decrypt(c.sealedKek);
+    try {
+      KEK = Buffer.from(
+        crypto.hkdfSync("sha256", plain, Buffer.from("nms-kms-salt"), Buffer.from("kek-v1"), 32)
+      );
+      KEK_SOURCE = "aliyun-kms";
+      return KEK;
+    } finally {
+      plain.fill(0);
+    }
+  }
+
+  return loadMasterKey();
 }
 
 /** 信封加密：v1.<iv>.<tag>.<ciphertext>（均为 base64url） */
@@ -278,6 +312,31 @@ export function ensureKey(alias = ALIAS_DEFAULT, algorithm = PROVIDER.activeAlgo
     .prepare("SELECT * FROM kms_keys WHERE alias = ? AND status = 'active' ORDER BY key_version DESC LIMIT 1")
     .get(alias);
   if (existing) return existing;
+
+  /* 云签名模式：登记一条「无本地私钥」的密钥记录，私钥在阿里云 KMS 内 */
+  if (aliyun.useCloudSigner()) {
+    const c = aliyun.config();
+    const alg = `aliyun-${c.signAlgorithm}`;
+    const id = `kmsk_aliyun_${c.signKeyId.slice(-12)}`;
+    const found = db.prepare("SELECT * FROM kms_keys WHERE id = ?").get(id);
+    if (found) return found;
+    db.prepare(
+      `INSERT INTO kms_keys (id, alias, algorithm, key_version, public_key_pem, sealed_private, fingerprint, status, created_date, rotated_date)
+       VALUES (?,?,?,?,?,?,?,?,?,?)`
+    ).run(
+      id,
+      alias,
+      alg,
+      1,
+      "",
+      "",
+      sha256(Buffer.from(c.signKeyId, "utf8")).slice(0, 32).toUpperCase().match(/.{4}/g).join(":"),
+      "active",
+      nowISO(),
+      null
+    );
+    return db.prepare("SELECT * FROM kms_keys WHERE id = ?").get(id);
+  }
 
   const kp = generateKeyPair(algorithm);
   const key = insertKey({ alias, algorithm, publicPem: kp.publicPem, privatePem: kp.privatePem, version: nextVersion(alias) });
@@ -456,13 +515,22 @@ export async function sign(payload, { alias = ALIAS_DEFAULT, context = "generic"
     return { ...hit, cached: true, latencyMs: Date.now() - started };
   }
 
-  let signatureBuf;
+  let signatureB64;
   try {
-    if (key.algorithm === "ed25519") {
+    if (key.algorithm.startsWith("aliyun-")) {
+      /* 私钥在阿里云 KMS 内，签名在云端完成，本地只拿回签名值 */
+      const c = aliyun.config();
+      const res = await aliyun.signWithKms({
+        message: payloadBuf,
+        keyId: c.signKeyId,
+        algorithm: key.algorithm.replace("aliyun-", ""),
+      });
+      signatureB64 = res.signature;
+    } else if (key.algorithm === "ed25519") {
       const priv = crypto.createPrivateKey(unseal(key.sealed_private).toString("utf8"));
-      signatureBuf = crypto.sign(null, payloadBuf, priv);
+      signatureB64 = crypto.sign(null, payloadBuf, priv).toString("base64");
     } else {
-      signatureBuf = await signWithOpenSsl(key, payloadBuf);
+      signatureB64 = (await signWithOpenSsl(key, payloadBuf)).toString("base64");
     }
   } catch (e) {
     auditLog({
@@ -484,7 +552,7 @@ export async function sign(payload, { alias = ALIAS_DEFAULT, context = "generic"
   }
 
   const envelope = {
-    signature: signatureBuf.toString("base64"),
+    signature: signatureB64,
     algorithm: key.algorithm,
     keyId: key.id,
     keyVersion: key.key_version,
@@ -542,12 +610,23 @@ export async function verify({ payload, signature, keyId, alias = ALIAS_DEFAULT 
   let ok = false;
   let reason = null;
   try {
-    const sigBuf = Buffer.from(String(signature), "base64");
-    if (key.algorithm === "ed25519") {
+    if (key.algorithm.startsWith("aliyun-")) {
+      const c = aliyun.config();
+      const res = await aliyun.verifyWithKms({
+        message: payloadBuf,
+        signature: String(signature),
+        keyId: c.signKeyId,
+        algorithm: key.algorithm.replace("aliyun-", ""),
+      });
+      ok = res.valid === true;
+      if (!ok) reason = "bad_signature";
+    } else if (key.algorithm === "ed25519") {
       const pub = crypto.createPublicKey(key.public_key_pem);
+      const sigBuf = Buffer.from(String(signature), "base64");
       ok = crypto.verify(null, payloadBuf, pub, sigBuf);
       if (!ok) reason = "bad_signature";
     } else {
+      const sigBuf = Buffer.from(String(signature), "base64");
       ok = await verifyWithOpenSsl(key, payloadBuf, sigBuf);
       if (!ok) reason = "bad_signature";
     }
@@ -722,27 +801,35 @@ export function stats() {
 export function health() {
   const keys = db.prepare("SELECT COUNT(*) c FROM kms_keys WHERE status='active'").get()?.c || 0;
   const checkpoints = db.prepare("SELECT COUNT(*) c FROM chain_checkpoints").get()?.c || 0;
+  const cloud = aliyun.health();
   return {
-    provider: PROVIDER.mlDsaAvailable ? "openssl-pqc" : "node-ed25519",
+    provider: cloud.cloudSigner ? "aliyun-kms" : PROVIDER.mlDsaAvailable ? "openssl-pqc" : "node-ed25519",
     openssl: PROVIDER.opensslVersion,
     pqcAvailable: PROVIDER.mlDsaAvailable,
     pqcAlgorithms: PROVIDER.pqcAlgorithms,
-    activeAlgorithm: PROVIDER.activeAlgorithm,
+    activeAlgorithm: aliyun.useCloudSigner() ? `aliyun-${cloud.signAlgorithm}` : PROVIDER.activeAlgorithm,
     keystore: KEK_SOURCE,
     activeKeys: keys,
     checkpoints,
     concurrency: MAX_CONCURRENCY,
     cacheSize: SIG_CACHE.size,
+    aliyun: cloud,
     stats: stats(),
   };
 }
 
-/** 启动时初始化：探测 provider、加载主密钥、确保默认密钥存在 */
-export function init() {
+/** 启动时初始化：探测 provider、加载主密钥（可能来自阿里云 KMS）、确保默认密钥存在 */
+export async function init() {
   detectProvider();
-  loadMasterKey();
+  await loadMasterKeyAsync();
   const key = ensureKey(ALIAS_DEFAULT);
-  return { provider: PROVIDER.activeAlgorithm, keyId: key.id, version: key.key_version, fingerprint: key.fingerprint };
+  return {
+    provider: aliyun.useCloudSigner() ? "aliyun-kms" : PROVIDER.activeAlgorithm,
+    keyId: key.id,
+    version: key.key_version,
+    fingerprint: key.fingerprint,
+    keystore: KEK_SOURCE,
+  };
 }
 
 export default {

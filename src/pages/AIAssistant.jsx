@@ -97,7 +97,7 @@ export default function AIAssistant() {
         title="AI 管家"
         subtitle="32 项 AI 能力 · Minara-AI 驱动 · 资产 / 策略 / 风控 / 治理 / RWA 全域覆盖"
         badge={<Badge variant="purple">{FEATURES.length} 项能力</Badge>}
-        actions={<Badge variant="success">可用 NMS {fmtNum(balance?.available_nms || 0)}</Badge>}
+        actions={<Badge variant="success">可用 NMS {fmtNum(Number(balance?.available_nms) || 0)}</Badge>}
       />
 
       <AISmartSearch />

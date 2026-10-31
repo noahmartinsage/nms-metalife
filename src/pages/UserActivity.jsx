@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { useEntityList } from "@/hooks/useEntity";
 import { useSession } from "@/hooks/useSession";
 import { fmtNum, fmtDate, timeAgo } from "@/lib/format";
+import { DataErrorBanner } from "@/components/common/ModuleState";
 
 const TIMELINE = [
   { type: "consume", text: "在「元味小馆」消费 ¥268，获得 268 NMS", time: 0.5 },
@@ -23,7 +24,7 @@ const ICONS = { consume: Receipt, nft: Sparkles, promote: TrendingUp, reward: Us
 
 export default function UserActivity() {
   const { balance, user } = useSession();
-  const { data: orders } = useEntityList("PaymentOrder", { user_email: user?.email }, "-created_date", 20);
+  const { data: orders, loading, error, refresh } = useEntityList("PaymentOrder", { user_email: user?.email }, "-created_date", 20);
 
   const events = useMemo(
     () =>
@@ -37,6 +38,8 @@ export default function UserActivity() {
 
   return (
     <div className="space-y-4">
+      <DataErrorBanner error={error} loading={loading} onRetry={refresh} />
+
       <PageHeader
         icon={Activity}
         title="用户动态"
@@ -84,7 +87,7 @@ export default function UserActivity() {
                     <p className="num text-[9px] text-muted-foreground">{fmtDate(o.created_date, true)}</p>
                   </div>
                   <div className="text-right">
-                    <p className="num">¥{fmtNum(o.amount)}</p>
+                    <p className="num">¥{fmtNum(Number(o.amount))}</p>
                     <p className="text-[9px] text-emerald-300">+{fmtNum(o.user_reward)} NMS</p>
                   </div>
                 </div>

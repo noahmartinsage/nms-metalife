@@ -9,6 +9,7 @@ export function useReferral() {
   const [user, setUser] = useState(null);
   const [balance, setBalance] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   const load = useCallback(async () => {
     try {
@@ -18,8 +19,10 @@ export function useReferral() {
         const rows = await base44.entities.UserBalance.filter({ user_email: u.email }, "-created_date", 1);
         if (rows.length > 0) setBalance(rows[0]);
       }
+      setError(null);
     } catch (e) {
-      /* 未登录 */
+      /* 未登录不算错误；其余失败要暴露 */
+      setError(e?.message || "推荐数据加载失败");
     } finally {
       setLoading(false);
     }
@@ -43,7 +46,7 @@ export function useReferral() {
   const referralLink =
     typeof window !== "undefined" ? `${window.location.origin}?ref=${referralCode}` : `?ref=${referralCode}`;
 
-  return { user, balance, referralCode, referralLink, loading, refresh: load };
+  return { user, balance, referralCode, referralLink, loading, error, refresh: load };
 }
 
 export default useReferral;

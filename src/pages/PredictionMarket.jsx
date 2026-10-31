@@ -44,7 +44,7 @@ function Sparkline({ points, color = "#22d3ee" }) {
 }
 
 export default function PredictionMarket() {
-  const { balance, refresh } = useSession();
+  const { balance, loading, refresh } = useSession();
   const [marketId, setMarketId] = useState("m1");
   const [side, setSide] = useState("yes");
   const [amount, setAmount] = useState("100");
@@ -67,7 +67,7 @@ export default function PredictionMarket() {
       toast.error("请输入投入金额");
       return;
     }
-    if (amt > (balance?.available_nms || 0)) {
+    if (amt > (Number(balance?.available_nms) || 0)) {
       toast.error("可用 NMS 不足");
       return;
     }
@@ -96,7 +96,7 @@ export default function PredictionMarket() {
       />
 
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-        <StatCard label="我的持仓" value={positions.length} unit="个" icon={Wallet} accent="cyan" />
+        <StatCard label="我的持仓" value={loading ? "—" : positions.length} unit="个" icon={Wallet} accent="cyan" />
         <StatCard label="浮动盈亏" value={fmtNum(totalPnl)} unit="NMS" icon={TrendingUp} accent={totalPnl >= 0 ? "rose" : "emerald"} />
         <StatCard label="参与市场" value={MARKETS.length} unit="个" icon={Brain} accent="violet" />
         <StatCard label="AI 托管" value={auto ? "开启" : "关闭"} icon={Bot} accent="amber" />

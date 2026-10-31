@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { useEntityList } from "@/hooks/useEntity";
 import { fmtNum } from "@/lib/format";
+import { DataErrorBanner } from "@/components/common/ModuleState";
 
 const INDICATORS = [
   ["静息心率", "62 bpm", "正常", 82],
@@ -17,10 +18,12 @@ const INDICATORS = [
 ];
 
 export default function LifeScience() {
-  const { data: assets } = useEntityList("DataAsset", { asset_type: "health" }, "-created_date", 10);
+  const { data: assets, loading, error, refresh } = useEntityList("DataAsset", { asset_type: "health" }, "-created_date", 10);
 
   return (
     <div className="space-y-4">
+      <DataErrorBanner error={error} loading={loading} onRetry={refresh} />
+
       <PageHeader
         icon={HeartPulse}
         title="元健康 · 生命科学"

@@ -254,10 +254,49 @@ export default function KMSPanel() {
             私钥使用 AES-256-GCM 信封加密，主密钥来自
             <span className="num"> NMS_KMS_MASTER_KEY </span>
             （当前：
-            {health?.keystore === "env" ? "环境变量" : "本地文件，生产请改用环境变量"}
+            {health?.keystore === "env"
+              ? "环境变量"
+              : health?.keystore === "aliyun-kms"
+                ? "阿里云 KMS 云托管"
+                : "本地文件，生产请改用环境变量或云 KMS"}
             ）。轮换后旧密钥标记为 retired，仍可验签历史交易。
           </p>
         </div>
+
+        {health?.aliyun && (
+          <div className="mt-1.5 rounded-lg border border-white/10 bg-black/20 px-2 py-1.5">
+            <div className="flex items-center justify-between">
+              <p className="text-[9px] font-medium">阿里云 KMS</p>
+              <Badge variant={health.aliyun.configured ? "success" : "outline"}>
+                {health.aliyun.configured ? "已配置" : "未配置"}
+              </Badge>
+            </div>
+            <div className="mt-1 space-y-0.5 text-[8px]">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">区域</span>
+                <span className="num">{health.aliyun.region}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">云托管根密钥</span>
+                <span className={health.aliyun.cloudKek ? "text-emerald-300" : "text-muted-foreground"}>
+                  {health.aliyun.cloudKek ? "已启用" : "未启用"}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">云签名</span>
+                <span className={health.aliyun.cloudSigner ? "text-emerald-300" : "text-muted-foreground"}>
+                  {health.aliyun.cloudSigner ? health.aliyun.signAlgorithm : "未启用（用本地 ML-DSA）"}
+                </span>
+              </div>
+            </div>
+            {!health.aliyun.configured && (
+              <p className="mt-1 text-[8px] leading-relaxed text-muted-foreground">
+                接入步骤见 <span className="num">docs/aliyun-kms.md</span>，或运行{" "}
+                <span className="num">npm run kms:aliyun:dry</span> 查看。
+              </p>
+            )}
+          </div>
+        )}
       </SectionCard>
 
       <SectionCard title="签名 → 验签 → 篡改测试" desc="在浏览器里跑一遍真实的后量子签名闭环" icon={Cpu}>

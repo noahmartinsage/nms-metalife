@@ -11,7 +11,13 @@
     "check:routes": "vite build --ssr scripts/ssr-check.jsx --outDir .ssr-tmp --logLevel warn && node .ssr-tmp/ssr-check.js",
     "server": "node server/index.mjs",
     "dump:seed": "vite build --ssr scripts/dump-seed.jsx --outDir .ssr-seed --logLevel warn && node .ssr-seed/dump-seed.js",
-    "dev:server": "vite --port 3000 --strictPort"
+    "dev:server": "vite --port 3000 --strictPort",
+    "kms:aliyun": "node scripts/kms-aliyun-setup.mjs",
+    "kms:aliyun:dry": "node scripts/kms-aliyun-setup.mjs --dry-run",
+    "kms:aliyun:check": "node scripts/kms-aliyun-setup.mjs --check",
+    "test:kms": "node scripts/test-kms.mjs",
+    "test:kms:aliyun": "node scripts/test-kms-aliyun.mjs",
+    "audit:modules": "node scripts/audit-modules.mjs"
   },
   "dependencies": {
     "canvas-confetti": "^1.9.4",

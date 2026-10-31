@@ -9,9 +9,10 @@ import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/toast";
 import { useEntityList } from "@/hooks/useEntity";
 import { fmtDate, fmtNum, shortHash } from "@/lib/format";
+import { DataErrorBanner } from "@/components/common/ModuleState";
 
 export default function Explorer() {
-  const { data: txs } = useEntityList("Transaction", {}, "-block_number", 30);
+  const { data: txs, loading, error, refresh } = useEntityList("Transaction", {}, "-block_number", 30);
   const [q, setQ] = useState("");
 
   const results = useMemo(() => {
@@ -39,6 +40,8 @@ export default function Explorer() {
 
   return (
     <div className="space-y-4">
+      <DataErrorBanner error={error} loading={loading} onRetry={refresh} />
+
       <PageHeader
         icon={Blocks}
         title="区块浏览器"
@@ -84,7 +87,7 @@ export default function Explorer() {
                 </div>
                 <div className="shrink-0 text-right">
                   <p className="num text-[10px]">
-                    {fmtNum(t.amount)} {t.token_type}
+                    {fmtNum(Number(t.amount))} {t.token_type}
                   </p>
                   <p
                     className={`text-[9px] ${

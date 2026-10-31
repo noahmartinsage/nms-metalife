@@ -12,11 +12,12 @@ import { MATRIX_LAYERS } from "@/lib/promotionData";
 import { useReferral } from "@/hooks/useReferral";
 import { fmtNum } from "@/lib/format";
 import { createPageUrl } from "@/utils";
+import { DataErrorBanner } from "@/components/common/ModuleState";
 
 /** 推荐链接落地页（?ref=CODE）：绑定确认 + 二维码 + 团队数据 */
 export default function Invite() {
   const [params] = useSearchParams();
-  const { referralCode, balance } = useReferral();
+  const { referralCode, balance, loading, error, refresh } = useReferral();
   const [copied, setCopied] = useState("");
   const qrRef = useRef(null);
 
@@ -44,9 +45,9 @@ export default function Invite() {
 
   const team = useMemo(
     () => [
-      { label: "直推", value: balance?.direct_referrals ?? 0, rate: "20%" },
-      { label: "间推", value: Math.max(0, (balance?.team_size || 0) - (balance?.direct_referrals || 0)), rate: "10%" },
-      { label: "团队总人数", value: balance?.team_size ?? 0, rate: "—" },
+      { label: "直推", value: Number(balance?.direct_referrals) || 0, rate: "20%" },
+      { label: "间推", value: Math.max(0, (Number(balance?.team_size) || 0) - (Number(balance?.direct_referrals) || 0)), rate: "10%" },
+      { label: "团队总人数", value: Number(balance?.team_size) || 0, rate: "—" },
     ],
     [balance]
   );
@@ -63,6 +64,8 @@ export default function Invite() {
 
   return (
     <div className="space-y-4">
+      <DataErrorBanner error={error} loading={loading} onRetry={refresh} />
+
       <PageHeader
         icon={Share2}
         title="邀请好友"

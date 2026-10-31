@@ -20,6 +20,7 @@ import { TOKENS } from "@/lib/promotionData";
 import { useEntityList } from "@/hooks/useEntity";
 import { fmtNum } from "@/lib/format";
 import { createPageUrl } from "@/utils";
+import { DataErrorBanner } from "@/components/common/ModuleState";
 
 const GROUPS = [
   {
@@ -62,11 +63,19 @@ const GROUPS = [
 ];
 
 export default function Discover() {
-  const { data: regions } = useEntityList("DAORegion", {}, "-dao_fund", 10);
-  const { data: assets } = useEntityList("DataAsset", {}, "-created_date", 10);
+  const { data: regions, loading: rLoading, error: rError, refresh: rRefresh } = useEntityList("DAORegion", {}, "-dao_fund", 10);
+  const { data: assets, loading: aLoading, error: aError, refresh: aRefresh } = useEntityList("DataAsset", {}, "-created_date", 10);
+  const loading = rLoading || aLoading;
+  const error = rError || aError;
+  const refresh = () => {
+    rRefresh();
+    aRefresh();
+  };
 
   return (
     <div className="space-y-4">
+      <DataErrorBanner error={error} loading={loading} onRetry={refresh} />
+
       <PageHeader
         icon={Layers}
         title="发现"

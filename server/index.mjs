@@ -607,18 +607,29 @@ process.on("unhandledRejection", (err) => {
   console.error("[unhandledRejection]", err);
 });
 
+/* KMS 初始化必须在监听前完成：云托管根密钥需要异步解密 */
+const KMS_BOOT = await kms.init();
+const KMS_HEALTH = kms.health();
+
+const KEYSTORE_LABEL = {
+  env: "环境变量 NMS_KMS_MASTER_KEY",
+  file: "本地主密钥文件（生产请改用 NMS_KMS_MASTER_KEY 或阿里云 KMS）",
+  "aliyun-kms": "阿里云 KMS（云托管根密钥）",
+};
+
 server.listen(PORT, HOST, () => {
   const info = dbInfo();
-  const boot = kms.init();
-  const kmsHealth = kms.health();
   console.log(`\n  NMS MetaLife API  →  http://${HOST}:${PORT}`);
   console.log(`  数据库            →  ${SERVER_BOOT.dbFile}`);
   console.log(`  实体              →  ${info.entities} 个 ${SERVER_BOOT.seeded ? "(已导入演示数据)" : ""}`);
   console.log(`  实体行数          →  ${Object.entries(info.counts).map(([k, v]) => `${k}:${v}`).join(" ")}`);
   console.log(`  退款风控          →  ≤${REFUND_RULES.autoApproveLimit} 自动通过 / ≤${REFUND_RULES.merchantLimit} 需确认 / 以上需管理员`);
-  console.log(`  KMS / HSM         →  ${boot.provider.toUpperCase()} · key v${boot.version} · ${boot.fingerprint}`);
-  console.log(`  后量子可用        →  ${kmsHealth.pqcAlgorithms.length ? kmsHealth.pqcAlgorithms.join(", ") : "无（降级 Ed25519）"}`);
-  console.log(`  密钥托管          →  ${kmsHealth.keystore === "env" ? "环境变量主密钥" : "本地主密钥文件（生产请改用 NMS_KMS_MASTER_KEY）"}`);
+  console.log(`  KMS / HSM         →  ${KMS_BOOT.provider.toUpperCase()} · key v${KMS_BOOT.version} · ${KMS_BOOT.fingerprint}`);
+  console.log(`  后量子可用        →  ${KMS_HEALTH.pqcAlgorithms.length ? KMS_HEALTH.pqcAlgorithms.join(", ") : "无（降级 Ed25519）"}`);
+  console.log(`  密钥托管          →  ${KEYSTORE_LABEL[KMS_HEALTH.keystore] || KMS_HEALTH.keystore}`);
+  if (KMS_HEALTH.aliyun?.configured) {
+    console.log(`  阿里云 KMS        →  ${KMS_HEALTH.aliyun.region} · 云根密钥 ${KMS_HEALTH.aliyun.cloudKek ? "已启用" : "未启用"} · 云签名 ${KMS_HEALTH.aliyun.cloudSigner ? "已启用" : "未启用"}`);
+  }
   startScheduler();
   console.log("");
 });

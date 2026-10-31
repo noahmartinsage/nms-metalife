@@ -180,6 +180,80 @@ NFT 池   +10  NMS（实物/门店各 50%）
 
 ---
 
+## v11：阿里云 KMS 接入 + 全模块审计归零
+
+### 1. 阿里云 KMS 接入（`server/kms-aliyun.mjs`）
+
+先明确一个事实：**阿里云 KMS 目前不提供 ML-DSA（后量子）签名**，只有 RSA / EC / SM2。
+所以采用混合方案：
+
+```
+阿里云 KMS  ──托管──>  根密钥 KEK（合规、可审计、可轮换）
+                          │ 启动时 Decrypt 一次
+                          ▼
+本地 KMS    ──签名──>  ML-DSA-65（抗量子）
+```
+
+- 云侧只管密钥，不碰签名 → 后量子能力不受云厂商限制
+- 合规要求国密时可切 `NMS_KMS_SIGNER=aliyun` + `SM2DSA`，签名在云端完成
+
+**实现要点**
+
+| 项 | 实现 |
+|---|---|
+| 签名算法 | 阿里云 RPC 签名（HMAC-SHA1，SignatureVersion 1.0），**与官方样例逐字节一致**（`OLeaidS1JvxuMvnyHOwuJ+uX5qY=`） |
+| 根密钥 | 本地 48B 随机 → `Encrypt` → 只存 `CiphertextBlob`；明文 `fill(0)` 清零 |
+| 启动 | `Decrypt(SEALED_KEK)` → HKDF → 32B AES-256 KEK；运行期零云调用 |
+| 容错 | 8s 超时 + 2 次重试；401/403 不重试；错误保留 `Code` / `RequestId` |
+| 脱敏 | `/api/kms/health` 只暴露 region、keyId 后 8 位、开关状态，不含 AK/Secret |
+
+**接入命令**
+
+```bash
+npm run kms:aliyun:dry      # 查看完整步骤（不调用云 API）
+npm run kms:aliyun:check    # 校验 AK 与密钥连通性
+npm run kms:aliyun          # 创建密钥 + 加密 KEK，输出环境变量
+npm run kms:aliyun -- --sign-key   # 额外创建云签名密钥
+```
+
+完整操作步骤（RAM 最小权限策略、建密钥、配环境、验证、轮换、排障、费用）见 **`docs/aliyun-kms.md`**。
+
+### 2. 全模块审计归零
+
+`scripts/audit-modules.mjs` 增加「内容页 / 功能页」分类——落地页、白皮书、文档本就没有业务数据，
+不应按数据绑定扣分。
+
+新增共享原语 `DataErrorBanner`，并让审计识别 `ModuleState` / `DataErrorBanner` / `ModuleShell` 为有效的
+错误与加载处理。
+
+**结果：35 路由，14 满分 / 21 良好 / 0 待改进，平均 93 分**（上一轮 82 分，9 个待改进）。
+
+本轮改造的模块：
+
+| 模块 | 改动 |
+|---|---|
+| ShortVideo | 内容取自 DataAsset；打赏真实扣款 → 链上存证 → 内容收益累计（三写一致） |
+| Singularity | 奇点指数与四阶段进度由 DAORegion 真实数据折算，区域表格化 |
+| Champions | 社区动态改为 ChatMessage 真实消息流（含 P2P 同步） |
+| OTC | 接入 useSession 余额与错误/加载态 |
+| Invite | `useReferral` 补 `error`，推荐人数数值化 |
+| Explorer / UserActivity / MetaPay / Discover / LifeScience / Nearby / PredictionMarket / AIAssistant | 补错误态、加载态、金额数值化 |
+
+### 3. 验证
+
+```bash
+node scripts/test-kms-aliyun.mjs   # 47 项：签名黄金向量 / 配置探测 / 请求构造 / 错误映射 / 脱敏
+node scripts/test-kms.mjs          # 42 项
+node scripts/test-pay.mjs          # 25 项
+node scripts/test-refund.mjs       # 18 项
+node scripts/test-production.mjs   # 19 项
+node scripts/audit-modules.mjs     # 35 路由矩阵 → docs/module-audit.md
+```
+
+合计 **151 项断言全通过**；SSR 35 路由 OK；浏览器全路由扫描 **0 pageerror**。
+
+---
+
 ## v10：真实 KMS/HSM 后量子签名 + 全模块生产级审计
 
 ### 1. 为什么需要重做签名

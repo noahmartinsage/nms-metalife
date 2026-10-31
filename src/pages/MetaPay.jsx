@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import MerchantQRCode from "@/components/payment/MerchantQRCode";
 import { useEntityList } from "@/hooks/useEntity";
+import { DataErrorBanner } from "@/components/common/ModuleState";
 import { fmtNum } from "@/lib/format";
 import { createPageUrl } from "@/utils";
 
@@ -21,10 +22,26 @@ const FEATURES = [
 ];
 
 export default function MetaPay() {
-  const { data: stores } = useEntityList("MerchantStore", {}, "-total_sales", 10);
-  const { data: orders } = useEntityList("PaymentOrder", {}, "-created_date", 50);
+  const { data: stores, loading: storesLoading, error: storesError, refresh: refreshStores } = useEntityList(
+    "MerchantStore",
+    {},
+    "-total_sales",
+    10
+  );
+  const { data: orders, loading: ordersLoading, error: ordersError, refresh: refreshOrders } = useEntityList(
+    "PaymentOrder",
+    {},
+    "-created_date",
+    50
+  );
+  const loading = storesLoading || ordersLoading;
+  const error = storesError || ordersError;
+  const refresh = () => {
+    refreshStores();
+    refreshOrders();
+  };
 
-  const gmv = orders.reduce((s, o) => s + (o.amount || 0), 0);
+  const gmv = orders.reduce((s, o) => s + (Number(o.amount) || 0), 0);
 
   return (
     <div className="space-y-4">
@@ -41,6 +58,8 @@ export default function MetaPay() {
           </Link>
         }
       />
+
+      <DataErrorBanner error={error} loading={loading} onRetry={refresh} />
 
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
         <StatCard label="累计 GMV" value={fmtNum(gmv)} unit="元" icon={CreditCard} accent="cyan" />
